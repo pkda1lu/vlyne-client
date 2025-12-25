@@ -282,6 +282,29 @@ if (!gotTheLock) {
         store.set(key, val);
     });
 
+    ipcMain.handle('get-version', () => {
+        return app.getVersion();
+    });
+
+    ipcMain.handle('check-for-updates', async () => {
+        try {
+            const result = await autoUpdater.checkForUpdates();
+            // result can be null if check failed or no update available in some contexts
+            // but normally it returns UpdateCheckResult
+            if (!result) return { status: 'no-update' };
+
+            // If update is available, autoUpdater usually emits 'update-available'
+            // We can return the version info from the result
+            return {
+                status: 'checked',
+                updateInfo: result.updateInfo
+            };
+        } catch (error: any) {
+            console.error('Failed to check for updates:', error);
+            return { status: 'error', error: error.message };
+        }
+    });
+
     ipcMain.handle('start-vpn', async (event, payload: any) => {
         // Support both old format (config directly) and new format ({ config, settings })
         const config = payload.server || payload;

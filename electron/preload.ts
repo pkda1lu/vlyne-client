@@ -19,4 +19,6 @@ contextBridge.exposeInMainWorld('electronAPI', {
         get: (key: string) => ipcRenderer.invoke('get-store', key),
         set: (key: string, val: any) => ipcRenderer.invoke('set-store', key, val),
     },
+    getVersion: () => ipcRenderer.invoke('get-version'),
+    checkForUpdates: () => ipcRenderer.invoke('check-for-updates'),
 });

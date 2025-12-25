@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { X, Settings as SettingsIcon, Copy, Trash2 } from 'lucide-react';
+import { X, Settings as SettingsIcon, Copy, Trash2, RotateCw } from 'lucide-react';
 import { useSettings } from '../contexts/SettingsContext';
 import { useTranslation } from '../contexts/I18nContext';
 
@@ -18,6 +18,35 @@ export function SettingsModal({ isOpen, onClose, initialTab, allowedTabs, title 
     const { t } = useTranslation();
     const [activeTab, setActiveTab] = useState<SettingsTab>('general');
     const [logs, setLogs] = useState<string>('');
+    const [appVersion, setAppVersion] = useState<string>('');
+    const [isCheckingUpdate, setIsCheckingUpdate] = useState(false);
+    const [updateStatus, setUpdateStatus] = useState<string | null>(null);
+
+    useEffect(() => {
+        if (window.electronAPI?.getVersion) {
+            window.electronAPI.getVersion().then(setAppVersion);
+        }
+    }, []);
+
+    const checkForUpdates = async () => {
+        if (isCheckingUpdate) return;
+        setIsCheckingUpdate(true);
+        setUpdateStatus(null);
+        try {
+            const result = await window.electronAPI.checkForUpdates();
+            if (result.status === 'no-update') {
+                setUpdateStatus('Установлена последняя версия');
+            } else if (result.status === 'checked' && result.updateInfo) {
+                setUpdateStatus(`Доступна версия ${result.updateInfo.version}`);
+            } else if (result.status === 'error') {
+                setUpdateStatus('Ошибка проверки');
+            }
+        } catch (error) {
+            setUpdateStatus('Ошибка');
+        } finally {
+            setIsCheckingUpdate(false);
+        }
+    };
 
     // Listen to real logs
     useEffect(() => {
@@ -168,6 +197,41 @@ export function SettingsModal({ isOpen, onClose, initialTab, allowedTabs, title 
                                     <option value="en">English</option>
                                     <option value="ru">Русский</option>
                                 </select>
+                            </SettingRow>
+
+                            <div style={{ borderTop: '1px solid var(--border-color)', margin: '10px 0' }}></div>
+
+                            <SettingRow
+                                label="Версия приложения"
+                                description={`Текущая версия: ${appVersion}`}
+                            >
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                                    {updateStatus && (
+                                        <span style={{ fontSize: '13px', color: updateStatus.includes('Ошибка') ? '#ff3b30' : 'var(--text-secondary)' }}>
+                                            {updateStatus}
+                                        </span>
+                                    )}
+                                    <button
+                                        onClick={checkForUpdates}
+                                        disabled={isCheckingUpdate}
+                                        style={{
+                                            padding: '8px 16px',
+                                            backgroundColor: 'var(--bg-primary)',
+                                            border: '1px solid var(--border-color)',
+                                            borderRadius: '8px',
+                                            color: 'var(--text-primary)',
+                                            cursor: isCheckingUpdate ? 'wait' : 'pointer',
+                                            display: 'flex',
+                                            alignItems: 'center',
+                                            gap: '8px',
+                                            fontSize: '13px',
+                                            fontWeight: 500
+                                        }}
+                                    >
+                                        <RotateCw size={14} style={{ animation: isCheckingUpdate ? 'spin 1s linear infinite' : 'none' }} />
+                                        Проверить обновления
+                                    </button>
+                                </div>
                             </SettingRow>
                         </div>
                     )}

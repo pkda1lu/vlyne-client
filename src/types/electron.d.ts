@@ -9,6 +9,8 @@ export interface ElectronAPI {
         get: (key: string) => Promise<any>;
         set: (key: string, val: any) => Promise<void>;
     };
+    getVersion: () => Promise<string>;
+    checkForUpdates: () => Promise<any>;
 }
 
 declare global {
