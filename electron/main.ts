@@ -185,6 +185,7 @@ if (!gotTheLock) {
 
         // Check for updates
         autoUpdater.autoDownload = false;
+        autoUpdater.allowPrerelease = true;
         autoUpdater.checkForUpdates();
     });
 
