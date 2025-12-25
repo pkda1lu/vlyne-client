@@ -39,10 +39,10 @@ export function SettingsModal({ isOpen, onClose, initialTab, allowedTabs, title 
             } else if (result.status === 'checked' && result.updateInfo) {
                 setUpdateStatus(`Доступна версия ${result.updateInfo.version}`);
             } else if (result.status === 'error') {
-                setUpdateStatus('Ошибка проверки');
+                setUpdateStatus(`Ошибка: ${result.error}`);
             }
-        } catch (error) {
-            setUpdateStatus('Ошибка');
+        } catch (error: any) {
+            setUpdateStatus(`Ошибка: ${error.message || 'Неизвестная ошибка'}`);
         } finally {
             setIsCheckingUpdate(false);
         }
