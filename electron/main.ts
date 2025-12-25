@@ -9,6 +9,10 @@ import { generateXrayConfig } from './xray-config-generator';
 import https from 'https';
 import http from 'http';
 import { Store } from './store';
+import { autoUpdater } from 'electron-updater';
+
+// Configure autoUpdater log
+autoUpdater.logger = console;
 
 // Handle creating/removing shortcuts on Windows when installing/uninstalling.
 if (require('electron-squirrel-startup')) {
@@ -178,6 +182,9 @@ if (!gotTheLock) {
         });
         createWindow();
         createTray();
+
+        // Check for updates
+        autoUpdater.checkForUpdatesAndNotify();
     });
 
     // Quit when all windows are closed, except on macOS.

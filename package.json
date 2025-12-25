@@ -37,10 +37,18 @@
         "from": "public/logo.png",
         "to": "logo.png"
       }
+    ],
+    "publish": [
+      {
+        "provider": "github",
+        "owner": "YOUR_GITHUB_USER",
+        "repo": "YOUR_REPO_NAME"
+      }
     ]
   },
   "dependencies": {
     "electron-squirrel-startup": "^1.0.1",
+    "electron-updater": "^6.6.2",
     "lucide-react": "^0.555.0",
     "react": "^19.2.0",
     "react-dom": "^19.2.0"

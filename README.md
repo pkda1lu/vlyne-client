@@ -1,73 +1,100 @@
-# React + TypeScript + Vite
+# Vlyne Client
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+![Vlyne Client Logo](public/logo.png)
 
-Currently, two official plugins are available:
+**English** | [Русский](#русский)
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) (or [oxc](https://oxc.rs) when used in [rolldown-vite](https://vite.dev/guide/rolldown)) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+---
 
-## React Compiler
+## English
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+**Vlyne Client** is a modern, fast, and secure client for Vlyne, built with Electron, React, and Vite. It provides a seamless experience for managing your secure connections.
 
-## Expanding the ESLint configuration
+### 🌟 Features
 
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
+*   **⚡ High Performance**: Built on the latest web technologies for maximum speed.
+*   **🔒 Secure Core**: Powered by Xray for robust and secure connection protocols.
+*   **🎨 Modern UI**: Sleek dark mode design and intuitive interface.
+*   **⚙️ Advanced Configuration**: Granular control over routing, DNS, and connection settings.
+*   **🔄 Auto-Updates**: Automatically checks for updates from GitHub on startup to keep you on the latest version.
+*   **🌍 Bilingual Support**: Fully localized interface.
 
-```js
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
+### 📥 Installation
 
-      // Remove tseslint.configs.recommended and replace with this
-      tseslint.configs.recommendedTypeChecked,
-      // Alternatively, use this for stricter rules
-      tseslint.configs.strictTypeChecked,
-      // Optionally, add this for stylistic rules
-      tseslint.configs.stylisticTypeChecked,
+1.  Go to the [Releases](https://github.com/VLYNE-OWNER/Vlyne-Client/releases) page.
+2.  Download the latest installer for your operating system (e.g., `.exe` for Windows).
+3.  Run the installer and follow the on-screen instructions.
 
-      // Other configs...
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
-```
+### 🛠️ Development
 
-You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
+To build or modify the client yourself:
 
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
+1.  **Clone the repository**
+    ```bash
+    git clone https://github.com/VLYNE-OWNER/Vlyne-Client.git
+    cd Vlyne-Client
+    ```
 
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-      // Enable lint rules for React
-      reactX.configs['recommended-typescript'],
-      // Enable lint rules for React DOM
-      reactDom.configs.recommended,
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
-```
+2.  **Install dependencies**
+    ```bash
+    npm install
+    ```
+
+3.  **Run in development mode**
+    ```bash
+    npm run dev
+    ```
+    This will start both the Vite dev server and the Electron application.
+
+4.  **Build for production**
+    ```bash
+    npm run build
+    ```
+
+---
+<a id="русский"></a>
+
+## Русский
+
+**Vlyne Client** — это современный, быстрый и безопасный клиент для Vlyne, созданный на базе Electron, React и Vite. Обеспечивает удобное управление вашими защищенными соединениями.
+
+### 🌟 Особенности
+
+*   **⚡ Высокая производительность**: Создан с использованием передовых веб-технологий.
+*   **🔒 Надежная защита**: Использует ядро Xray для обеспечения безопасности соединений.
+*   **🎨 Современный дизайн**: Стильный темный интерфейс и удобное управление.
+*   **⚙️ Гибкая настройка**: Полный контроль над маршрутизацией, DNS и параметрами подключения.
+*   **🔄 Автообновление**: Автоматическая проверка обновлений на GitHub при запуске приложения.
+*   **🌍 Мультиязычность**: Полностью локализованный интерфейс.
+
+### 📥 Установка
+
+1.  Перейдите на страницу [Releases](https://github.com/VLYNE-OWNER/Vlyne-Client/releases).
+2.  Скачайте последнюю версию установщика для вашей ОС (например, `.exe` для Windows).
+3.  Запустите файл и следуйте инструкциям установщика.
+
+### 🛠️ Разработка
+
+Если вы хотите собрать клиент самостоятельно:
+
+1.  **Клонируйте репозиторий**
+    ```bash
+    git clone https://github.com/VLYNE-OWNER/Vlyne-Client.git
+    cd Vlyne-Client
+    ```
+
+2.  **Установите зависимости**
+    ```bash
+    npm install
+    ```
+
+3.  **Запустите режим разработки**
+    ```bash
+    npm run dev
+    ```
+    Команда запустит сервер Vite и приложение Electron.
+
+4.  **Соберите проект**
+    ```bash
+    npm run build
+    ```
