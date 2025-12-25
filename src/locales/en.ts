@@ -1,0 +1,135 @@
+export const en = {
+    // Sidebar
+    servers: 'Servers',
+    add: 'Add',
+    individualServers: 'Individual Servers',
+
+    // Connection Panel
+    notConnected: 'Not Connected',
+    selectServer: 'Select a server to connect',
+    connect: 'Connect',
+    disconnect: 'Disconnect',
+    connecting: 'Connecting...',
+    connected: 'Connected',
+    ping: 'Ping',
+    serverInfo: 'Server Info',
+    prodBy: 'prod by Vlyne <3',
+
+    // Add Modal
+    addServer: 'Add Server',
+    addSubscription: 'Add Subscription',
+    subscriptionName: 'Subscription Name (optional)',
+    subscriptionUrl: 'Subscription URL',
+    configurationLink: 'Configuration Link',
+    detectedSubscription: 'Detected: Subscription URL (will import multiple servers)',
+    detectedServer: 'Detected: Single server configuration',
+    cancel: 'Cancel',
+    adding: 'Adding...',
+
+    // Settings Tabs
+    settings: 'Settings',
+    general: 'General',
+    inbound: 'Inbound',
+    routing: 'Routing',
+    dns: 'DNS',
+    core: 'Core',
+    advanced: 'Advanced',
+    logs: 'Logs',
+
+    // Logs Tab
+    clearLogs: 'Clear Logs',
+    copyLogs: 'Copy Logs',
+    noLogs: 'No logs available',
+
+    // General Settings
+    autoConnect: 'Auto Connect',
+    autoConnectDesc: 'Automatically connect to last server on startup',
+    autoEnableProxy: 'Auto Enable Proxy',
+    autoEnableProxyDesc: 'Automatically enable system proxy when connected',
+    minimizeToTray: 'Minimize to Tray',
+    minimizeToTrayDesc: 'Keep running in system tray when window is closed',
+    language: 'Language',
+    languageDesc: 'Application language',
+
+    // Inbound Settings
+    socksPort: 'SOCKS Port',
+    socksPortDesc: 'Local SOCKS5 proxy port',
+    httpPort: 'HTTP Port',
+    httpPortDesc: 'Local HTTP proxy port',
+    allowLan: 'Allow LAN',
+    allowLanDesc: 'Allow connections from local network',
+    udpSupport: 'UDP Support',
+    udpSupportDesc: 'Enable UDP traffic forwarding',
+    trafficSniffing: 'Traffic Sniffing',
+    trafficSniffingDesc: 'Enable protocol detection and routing',
+
+    // Routing Settings
+    routingMode: 'Routing Mode',
+    routingModeDesc: 'How traffic should be routed',
+    domainStrategy: 'Domain Strategy',
+    domainStrategyDesc: 'How to resolve domain names',
+    global: 'Global',
+    bypassLan: 'Bypass LAN',
+    bypassChina: 'Bypass China',
+    custom: 'Custom',
+    asIs: 'As Is',
+    ipIfNonMatch: 'IP If Non Match',
+    ipOnDemand: 'IP On Demand',
+
+    // Advanced Settings
+    multiplexing: 'Multiplexing (Mux)',
+    enableMux: 'Enable Mux',
+    enableMuxDesc: 'Multiplex connections for better performance',
+    concurrency: 'Concurrency',
+    concurrencyDesc: 'Number of concurrent connections',
+    fragment: 'Fragment',
+    enableFragment: 'Enable Fragment',
+    enableFragmentDesc: 'Fragment packets to bypass DPI',
+    packets: 'Packets',
+    packetsDesc: 'Packets to fragment (e.g., tlshello)',
+    length: 'Length',
+    lengthDesc: 'Fragment length range (e.g., 100-200)',
+    interval: 'Interval',
+    intervalDesc: 'Fragment interval range (e.g., 10-20)',
+    maxConnections: 'Max Connections',
+    maxConnectionsDesc: 'Maximum number of concurrent connections (0 for unlimited)',
+    connectionTimeout: 'Connection Timeout',
+    connectionTimeoutDesc: 'Connection timeout in seconds',
+
+    // DNS Settings Details
+    primaryDns: 'Primary DNS',
+    primaryDnsDesc: 'Main DNS server IP',
+    fallbackDns: 'Fallback DNS',
+    fallbackDnsDesc: 'Backup DNS server IP',
+    dnsStrategy: 'DNS Strategy',
+    dnsStrategyDesc: 'How to query DNS servers',
+    useIp: 'Use IP',
+    useIpv4: 'Use IPv4',
+    useIpv6: 'Use IPv6',
+
+    // Core Settings Details
+    logLevel: 'Log Level',
+    logLevelDesc: 'Xray core logging level',
+    accessLog: 'Access Log',
+    accessLogDesc: 'Enable access logging',
+    errorLog: 'Error Log',
+    errorLogDesc: 'Enable error logging',
+    enableStats: 'Enable Stats',
+    enableStatsDesc: 'Enable traffic statistics',
+
+    resetToDefault: 'Reset to Default',
+    done: 'Done',
+
+    // Confirmations
+    deleteServer: 'Delete',
+    deleteSubscription: 'Delete subscription',
+    deleteSubscriptionConfirm: 'and all its servers?',
+    resetSettingsConfirm: 'Reset all settings to default?',
+
+    // Errors
+    invalidLink: 'Invalid configuration link. Supported formats: vless://, vmess://, trojan://, ss://',
+    failedToFetch: 'Failed to fetch subscription',
+    enterLinkOrUrl: 'Please enter a configuration link or subscription URL',
+};
+
+export type Translation = typeof en;
