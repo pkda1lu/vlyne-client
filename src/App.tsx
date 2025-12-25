@@ -4,6 +4,7 @@ import { Sidebar } from './components/Sidebar';
 import { ConnectionPanel } from './components/ConnectionPanel';
 import { UnifiedAddModal } from './components/UnifiedAddModal';
 import { SettingsModal, type SettingsTab } from './components/SettingsModal';
+import { UpdateModal } from './components/UpdateModal';
 import { SettingsProvider } from './contexts/SettingsContext';
 import { I18nProvider } from './contexts/I18nContext';
 import { parseProxyLink } from './utils/protocol-parser';
@@ -271,6 +272,7 @@ function AppContent() {
         allowedTabs={['routing']}
         title="Маршрутизация"
       />
+      <UpdateModal />
     </div>
   );
 }

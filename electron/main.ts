@@ -184,7 +184,21 @@ if (!gotTheLock) {
         createTray();
 
         // Check for updates
-        autoUpdater.checkForUpdatesAndNotify();
+        autoUpdater.autoDownload = false;
+        autoUpdater.checkForUpdates();
+    });
+
+    // AutoUpdater events
+    autoUpdater.on('update-available', (info) => {
+        mainWindow?.webContents.send('update-available', info);
+    });
+
+    autoUpdater.on('download-progress', (progressObj) => {
+        mainWindow?.webContents.send('download-progress', progressObj);
+    });
+
+    autoUpdater.on('update-downloaded', (info) => {
+        mainWindow?.webContents.send('update-downloaded', info);
     });
 
     // Quit when all windows are closed, except on macOS.
@@ -303,6 +317,14 @@ if (!gotTheLock) {
             console.error('Failed to check for updates:', error);
             return { status: 'error', error: error.message };
         }
+    });
+
+    ipcMain.handle('download-update', () => {
+        autoUpdater.downloadUpdate();
+    });
+
+    ipcMain.handle('install-update', () => {
+        autoUpdater.quitAndInstall();
     });
 
     ipcMain.handle('start-vpn', async (event, payload: any) => {

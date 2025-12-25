@@ -11,6 +11,11 @@ export interface ElectronAPI {
     };
     getVersion: () => Promise<string>;
     checkForUpdates: () => Promise<any>;
+    downloadUpdate: () => Promise<void>;
+    installUpdate: () => Promise<void>;
+    onUpdateAvailable: (callback: (info: any) => void) => () => void;
+    onDownloadProgress: (callback: (progress: any) => void) => () => void;
+    onUpdateDownloaded: (callback: (info: any) => void) => () => void;
 }
 
 declare global {
