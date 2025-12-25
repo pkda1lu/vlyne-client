@@ -247,6 +247,11 @@ function AppContent() {
             ));
           }
         }}
+        onUpdateServer={(id: string, updates: Partial<Server>) => {
+          setServers(prev => prev.map(s =>
+            s.id === id ? { ...s, ...updates } : s
+          ));
+        }}
       />
       <UnifiedAddModal
         isOpen={isAddModalOpen}

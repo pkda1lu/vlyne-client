@@ -1,5 +1,5 @@
 import { type Server } from '../App';
-import { Power, Shield, Globe, Activity, Info, Lock, Gauge } from 'lucide-react';
+import { Power, Shield, Globe, Activity, Info, Lock, Gauge, RefreshCw } from 'lucide-react';
 import { useState, useEffect, useRef } from 'react';
 import { useTranslation } from '../contexts/I18nContext';
 import { useSettings } from '../contexts/SettingsContext';
@@ -8,13 +8,15 @@ import { ServerInfoModal } from './ServerInfoModal';
 interface ConnectionPanelProps {
     server: Server | null;
     onStatusChange: (status: Server['status']) => void;
+    onUpdateServer: (id: string, updates: Partial<Server>) => void;
 }
 
-export function ConnectionPanel({ server, onStatusChange }: ConnectionPanelProps) {
+export function ConnectionPanel({ server, onStatusChange, onUpdateServer }: ConnectionPanelProps) {
     const { t } = useTranslation();
     const { settings } = useSettings();
     const [ping, setPing] = useState<number | null>(null);
     const [showInfo, setShowInfo] = useState(false);
+    const [isSpeedTesting, setIsSpeedTesting] = useState(false);
     const hasAutoConnected = useRef(false);
     const [connectedAt, setConnectedAt] = useState<number | null>(null);
     const [elapsed, setElapsed] = useState<string>('00:00:00');
@@ -47,18 +49,46 @@ export function ConnectionPanel({ server, onStatusChange }: ConnectionPanelProps
         }
     };
 
+    const checkSpeed = async () => {
+        if (!server || !isConnected) return;
+
+        setIsSpeedTesting(true);
+        // Clear old value
+        onUpdateServer(server.id, { load: '...' });
+
+        try {
+            const startTime = Date.now();
+            // Download a small file (5MB approx) to test speed
+            const response = await fetch('https://speed.cloudflare.com/__down?bytes=5000000', { cache: 'no-store' });
+            await response.blob();
+            const endTime = Date.now();
+
+            const durationInSeconds = (endTime - startTime) / 1000;
+            const bitsLoaded = 5000000 * 8;
+            const bps = bitsLoaded / durationInSeconds;
+            const mbps = (bps / (1024 * 1024)).toFixed(1);
+
+            onUpdateServer(server.id, { load: `${mbps} Mbps` });
+        } catch (error) {
+            console.error('Speed test failed:', error);
+            onUpdateServer(server.id, { load: 'Error' });
+        } finally {
+            setIsSpeedTesting(false);
+        }
+    };
+
+    const measurePing = async () => {
+        if (!server?.port) return;
+        setPing(null); // Show loading state
+        const result = await window.electronAPI.pingServer(server.address, parseInt(server.port));
+        setPing(result);
+    };
+
     useEffect(() => {
         if (!server) {
             setPing(null);
             return;
         }
-
-        // Measure ping initially
-        const measurePing = async () => {
-            if (!server.port) return;
-            const result = await window.electronAPI.pingServer(server.address, parseInt(server.port));
-            setPing(result);
-        };
 
         measurePing();
 
@@ -190,9 +220,19 @@ export function ConnectionPanel({ server, onStatusChange }: ConnectionPanelProps
 
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0,1fr))', gap: '16px' }}>
                     <InfoCard icon={<Globe size={18} />} label="Протокол" value={server.protocol.toUpperCase()} />
-                    <InfoCard icon={<Activity size={18} />} label={t.ping} value={ping !== null ? `${ping} ms` : '...'} />
+                    <InfoCard
+                        icon={<Activity size={18} />}
+                        label={t.ping}
+                        value={ping !== null ? `${ping} ms` : '...'}
+                        action={<RefreshCw size={14} style={{ cursor: 'pointer' }} onClick={measurePing} />}
+                    />
                     <InfoCard icon={<Lock size={18} />} label="Шифрование" value="AES-256" />
-                    <InfoCard icon={<Gauge size={18} />} label="Загрузка" value={server.load ?? '—'} />
+                    <InfoCard
+                        icon={<Gauge size={18} />}
+                        label="Загрузка"
+                        value={server.load ?? '—'}
+                        action={<RefreshCw size={14} style={{ cursor: isConnected ? 'pointer' : 'not-allowed', opacity: isConnected ? 1 : 0.5, animation: isSpeedTesting ? 'spin 1s linear infinite' : 'none' }} onClick={checkSpeed} />}
+                    />
                     <InfoCard icon={<Shield size={18} />} label="Безопасность" value="Активна" />
                     <InfoCard icon={<Info size={18} />} label="Адрес" value={server.address} />
                 </div>
@@ -201,7 +241,7 @@ export function ConnectionPanel({ server, onStatusChange }: ConnectionPanelProps
     );
 }
 
-function InfoCard({ icon, label, value }: { icon: JSX.Element; label: string; value: string | number }) {
+function InfoCard({ icon, label, value, action }: { icon: JSX.Element; label: string; value: string | number; action?: JSX.Element }) {
     return (
         <div style={{
             backgroundColor: 'var(--bg-secondary)',
@@ -210,11 +250,15 @@ function InfoCard({ icon, label, value }: { icon: JSX.Element; label: string; va
             padding: '14px 16px',
             display: 'flex',
             flexDirection: 'column',
-            gap: 6
+            gap: 6,
+            position: 'relative'
         }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8, color: 'var(--text-secondary)', fontSize: 12 }}>
-                {icon}
-                <span>{label}</span>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', color: 'var(--text-secondary)', fontSize: 12 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                    {icon}
+                    <span>{label}</span>
+                </div>
+                {action}
             </div>
             <div style={{ fontSize: 15, fontWeight: 700 }}>{value}</div>
         </div>

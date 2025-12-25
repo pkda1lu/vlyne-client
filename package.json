@@ -1,7 +1,7 @@
 {
   "name": "vlyne-client",
   "private": true,
-  "version": "0.1.17",
+  "version": "0.1.18",
   "main": "dist-electron/main.js",
   "scripts": {
     "dev": "concurrently \"npm run dev:vite\" \"npm run dev:electron\"",
@@ -9,7 +9,8 @@
     "dev:electron": "wait-on tcp:5173 && tsc -p electron/tsconfig.json && cross-env NODE_ENV=development electron .",
     "build": "tsc && vite build && tsc -p electron/tsconfig.json && electron-builder",
     "lint": "eslint .",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "publish": "npm run build -- --publish always"
   },
   "build": {
     "appId": "com.vlyne.client",
@@ -41,8 +42,8 @@
     "publish": [
       {
         "provider": "github",
-        "owner": "YOUR_GITHUB_USER",
-        "repo": "YOUR_REPO_NAME"
+        "owner": "pkda1lu",
+        "repo": "vlyne-client"
       }
     ]
   },

@@ -21,7 +21,7 @@
 
 ### 📥 Installation
 
-1.  Go to the [Releases](https://github.com/VLYNE-OWNER/Vlyne-Client/releases) page.
+1.  Go to the [Releases](https://github.com/pkda1lu/Vlyne-Client/releases) page.
 2.  Download the latest installer for your operating system (e.g., `.exe` for Windows).
 3.  Run the installer and follow the on-screen instructions.
 
@@ -31,7 +31,7 @@ To build or modify the client yourself:
 
 1.  **Clone the repository**
     ```bash
-    git clone https://github.com/VLYNE-OWNER/Vlyne-Client.git
+    git clone https://github.com/pkda1lu/Vlyne-Client.git
     cd Vlyne-Client
     ```
 
@@ -69,7 +69,7 @@ To build or modify the client yourself:
 
 ### 📥 Установка
 
-1.  Перейдите на страницу [Releases](https://github.com/VLYNE-OWNER/Vlyne-Client/releases).
+1.  Перейдите на страницу [Releases](https://github.com/pkda1lu/Vlyne-Client/releases).
 2.  Скачайте последнюю версию установщика для вашей ОС (например, `.exe` для Windows).
 3.  Запустите файл и следуйте инструкциям установщика.
 
@@ -79,7 +79,7 @@ To build or modify the client yourself:
 
 1.  **Клонируйте репозиторий**
     ```bash
-    git clone https://github.com/VLYNE-OWNER/Vlyne-Client.git
+    git clone https://github.com/pkda1lu/Vlyne-Client.git
     cd Vlyne-Client
     ```
 

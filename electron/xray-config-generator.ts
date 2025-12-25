@@ -266,14 +266,14 @@ export function generateXrayConfig(config: ServerConfig, settings: any, resource
         routingRules.push({
             type: 'field',
             outboundTag: 'direct',
-            ip: ['geo:private']
+            ip: ['geoip:private']
         });
     } else if (mode === 'bypass-china') {
         routingRules.push(
             {
                 type: 'field',
                 outboundTag: 'direct',
-                ip: ['geo:private', 'geo:cn']
+                ip: ['geoip:private', 'geoip:cn']
             },
             {
                 type: 'field',

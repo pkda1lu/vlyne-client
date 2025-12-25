@@ -16,6 +16,7 @@ export interface BaseServerConfig {
 
     // Connection status
     ping?: number; // Latency in ms
+    load?: string; // Connection speed/load
 
     // Subscription tracking
     subscriptionId?: string;
