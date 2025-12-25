@@ -35,14 +35,14 @@ export function SettingsModal({ isOpen, onClose, initialTab, allowedTabs, title 
         try {
             const result = await window.electronAPI.checkForUpdates();
             if (result.status === 'no-update') {
-                setUpdateStatus('Установлена последняя версия');
+                setUpdateStatus(t.latestVersionInstalled);
             } else if (result.status === 'checked' && result.updateInfo) {
-                setUpdateStatus(`Доступна версия ${result.updateInfo.version}`);
+                setUpdateStatus(t.versionAvailable.replace('{{version}}', result.updateInfo.version));
             } else if (result.status === 'error') {
-                setUpdateStatus(`Ошибка: ${result.error}`);
+                setUpdateStatus(`${t.errorPrefix}${result.error}`);
             }
         } catch (error: any) {
-            setUpdateStatus(`Ошибка: ${error.message || 'Неизвестная ошибка'}`);
+            setUpdateStatus(`${t.errorPrefix}${error.message || 'Unknown error'}`);
         } finally {
             setIsCheckingUpdate(false);
         }
@@ -202,12 +202,12 @@ export function SettingsModal({ isOpen, onClose, initialTab, allowedTabs, title 
                             <div style={{ borderTop: '1px solid var(--border-color)', margin: '10px 0' }}></div>
 
                             <SettingRow
-                                label="Версия приложения"
-                                description={`Текущая версия: ${appVersion}`}
+                                label={t.applicationVersion}
+                                description={`${t.currentVersion}: ${appVersion}`}
                             >
                                 <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
                                     {updateStatus && (
-                                        <span style={{ fontSize: '13px', color: updateStatus.includes('Ошибка') ? '#ff3b30' : 'var(--text-secondary)' }}>
+                                        <span style={{ fontSize: '13px', color: updateStatus.includes(t.errorPrefix) ? '#ff3b30' : 'var(--text-secondary)' }}>
                                             {updateStatus}
                                         </span>
                                     )}
@@ -229,7 +229,7 @@ export function SettingsModal({ isOpen, onClose, initialTab, allowedTabs, title 
                                         }}
                                     >
                                         <RotateCw size={14} style={{ animation: isCheckingUpdate ? 'spin 1s linear infinite' : 'none' }} />
-                                        Проверить обновления
+                                        {t.checkForUpdates}
                                     </button>
                                 </div>
                             </SettingRow>

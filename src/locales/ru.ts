@@ -132,4 +132,23 @@ export const ru: Translation = {
     invalidLink: 'Неверная ссылка на конфигурацию. Поддерживаемые форматы: vless://, vmess://, trojan://, ss://',
     failedToFetch: 'Не удалось загрузить подписку',
     enterLinkOrUrl: 'Пожалуйста, введите ссылку на конфигурацию или URL подписки',
+
+    // Updates
+    applicationVersion: 'Версия приложения',
+    currentVersion: 'Текущая версия',
+    latestVersionInstalled: 'Установлена последняя версия',
+    versionAvailable: 'Доступна версия {{version}}',
+    checkError: 'Ошибка проверки',
+    errorPrefix: 'Ошибка: ',
+    checkForUpdates: 'Проверить обновления',
+    updateAvailable: 'Доступно обновление',
+    newVersionAvailable: 'Новая версия {{version}} доступна для скачивания.',
+    updateReadyToInstall: 'Обновление загружено и готово к установке.',
+    updateQuestion: 'Хотите обновить приложение сейчас?',
+    later: 'Позже',
+    restartAndUpdate: 'Перезапустить и обновить',
+    downloading: 'Скачивание...',
+    update: 'Обновить',
+    downloadStartError: 'Не удалось начать загрузку',
+    installError: 'Не удалось установить обновление',
 };

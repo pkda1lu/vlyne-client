@@ -130,6 +130,25 @@ export const en = {
     invalidLink: 'Invalid configuration link. Supported formats: vless://, vmess://, trojan://, ss://',
     failedToFetch: 'Failed to fetch subscription',
     enterLinkOrUrl: 'Please enter a configuration link or subscription URL',
+
+    // Updates
+    applicationVersion: 'Application Version',
+    currentVersion: 'Current version',
+    latestVersionInstalled: 'Latest version installed',
+    versionAvailable: 'Version {{version}} available',
+    checkError: 'Check error',
+    errorPrefix: 'Error: ',
+    checkForUpdates: 'Check for Updates',
+    updateAvailable: 'Update Available',
+    newVersionAvailable: 'New version {{version}} available for download.',
+    updateReadyToInstall: 'Update downloaded and ready to install.',
+    updateQuestion: 'Do you want to update now?',
+    later: 'Later',
+    restartAndUpdate: 'Restart & Update',
+    downloading: 'Downloading...',
+    update: 'Update',
+    downloadStartError: 'Failed to start download',
+    installError: 'Failed to install update',
 };
 
 export type Translation = typeof en;
