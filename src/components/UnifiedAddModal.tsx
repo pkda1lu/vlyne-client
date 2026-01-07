@@ -124,7 +124,7 @@ export function UnifiedAddModal({ isOpen, onClose, onAddServer, onAddSubscriptio
                                     }
                                 }
                             }}
-                            placeholder={inputType === 'subscription' ? 'https://...' : 'vless://... or vmess://...'}
+                            placeholder={inputType === 'subscription' ? t.placeholderUrl : t.placeholderLink}
                             style={{
                                 width: '100%',
                                 padding: '12px',

@@ -112,30 +112,30 @@ export function ServerInfoModal({ isOpen, onClose, server }: ServerInfoModalProp
 
                     {/* Details Table */}
                     <div style={{ display: 'flex', flexDirection: 'column' }}>
-                        <InfoRow label="Name" value={server.name} />
-                        <InfoRow label="Protocol" value={server.protocol.toUpperCase()} />
-                        <InfoRow label="Address" value={server.address} />
-                        <InfoRow label="Port" value={server.port} />
-                        <InfoRow label="Network" value={server.network} />
-                        <InfoRow label="Security" value={server.security} />
+                        <InfoRow label={t.name} value={server.name} />
+                        <InfoRow label={t.protocol} value={server.protocol.toUpperCase()} />
+                        <InfoRow label={t.address} value={server.address} />
+                        <InfoRow label={t.port} value={server.port} />
+                        <InfoRow label={t.network} value={server.network} />
+                        <InfoRow label={t.security} value={server.security} />
 
                         {(server.protocol === 'vless' || server.protocol === 'vmess') && (
-                            <InfoRow label="UUID" value={(server as any).uuid} />
+                            <InfoRow label={t.uuid} value={(server as any).uuid} />
                         )}
                         {server.protocol === 'vless' && (
-                            <InfoRow label="Flow" value={(server as any).flow} />
+                            <InfoRow label={t.flow} value={(server as any).flow} />
                         )}
                         {server.protocol === 'vmess' && (
                             <>
-                                <InfoRow label="AlterId" value={(server as any).alterId?.toString()} />
-                                <InfoRow label="Cipher" value={(server as any).cipher} />
+                                <InfoRow label={t.alterId} value={(server as any).alterId?.toString()} />
+                                <InfoRow label={t.cipher} value={(server as any).cipher} />
                             </>
                         )}
                         {(server.protocol === 'trojan' || server.protocol === 'shadowsocks') && (
-                            <InfoRow label="Password" value={(server as any).password} />
+                            <InfoRow label={t.password} value={(server as any).password} />
                         )}
-                        {server.sni && <InfoRow label="SNI" value={server.sni} />}
-                        {server.subscriptionName && <InfoRow label="Subscription" value={server.subscriptionName} />}
+                        {server.sni && <InfoRow label={t.sni} value={server.sni} />}
+                        {server.subscriptionName && <InfoRow label={t.subscription} value={server.subscriptionName} />}
                     </div>
 
                 </div>

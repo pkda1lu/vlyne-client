@@ -1,7 +1,7 @@
 import { type Server } from '../App';
 import { type Subscription } from '../types/server';
-import { Plus, Settings, Trash2, ChevronDown, ChevronRight, RefreshCw, ArrowUp, ArrowDown, Power, Shuffle, Grid, MoreHorizontal, Import, LogOut } from 'lucide-react';
-import { useMemo, useState } from 'react';
+import { Plus, Trash2, ChevronDown, ChevronRight, RefreshCw, ArrowUp, ArrowDown, Power, Shuffle, Grid, MoreHorizontal, Import } from 'lucide-react';
+import { useState } from 'react';
 import { useTranslation } from '../contexts/I18nContext';
 
 interface SidebarProps {
@@ -41,13 +41,13 @@ export function Sidebar({ servers, subscriptions, activeServerId, onSelectServer
     const [hoveredServer, setHoveredServer] = useState<string | null>(null);
     const [refreshingSub, setRefreshingSub] = useState<string | null>(null);
 
-    const navItems = useMemo(() => ([
-        { id: 'connect', label: 'Подключение', icon: Power, onClick: () => null, active: true },
-        { id: 'routing', label: 'Маршрутизация', icon: Shuffle, onClick: () => onOpenRouting() },
-        { id: 'services', label: 'Скоро...', icon: Grid, onClick: () => null },
-        { id: 'import', label: 'Импорт', icon: Import, onClick: onAdd },
-        { id: 'more', label: 'Еще', icon: MoreHorizontal, onClick: () => onOpenSettings('general') },
-    ]), [onAdd, onOpenSettings, onOpenRouting]);
+    const navItems = [
+        { id: 'connect', label: t.connection, icon: Power, onClick: () => null, active: true },
+        { id: 'routing', label: t.routing, icon: Shuffle, onClick: () => onOpenRouting() },
+        { id: 'services', label: t.comingSoon, icon: Grid, onClick: () => null },
+        { id: 'import', label: t.import, icon: Import, onClick: onAdd },
+        { id: 'more', label: t.more, icon: MoreHorizontal, onClick: () => onOpenSettings('general') },
+    ];
 
     // Group servers
     const individualServers = servers.filter(s => !s.subscriptionId);
@@ -137,7 +137,7 @@ export function Sidebar({ servers, subscriptions, activeServerId, onSelectServer
                             color: '#fff',
                             fontWeight: 600
                         }}>
-                            {server.ping > 0 ? `${server.ping}ms` : 'Timeout'}
+                            {server.ping > 0 ? `${server.ping}ms` : t.timeout}
                         </span>
                     )}
                 </div>
@@ -160,9 +160,9 @@ export function Sidebar({ servers, subscriptions, activeServerId, onSelectServer
                         display: 'flex',
                         alignItems: 'center',
                     }}
-                    title="Ping server"
+                    title={t.pingServer}
                 >
-                    <div style={{ fontSize: '10px', fontWeight: 'bold' }}>Ping</div>
+                    <div style={{ fontSize: '10px', fontWeight: 'bold' }}>{t.ping}</div>
                 </button>
             )}
             {showDelete && hoveredServer === server.id && (
@@ -217,7 +217,7 @@ export function Sidebar({ servers, subscriptions, activeServerId, onSelectServer
                 </div>
                 <div style={{ display: 'flex', flexDirection: 'column' }}>
                     <span style={{ fontSize: '15px', fontWeight: 700, letterSpacing: 0.2 }}>VLYNE CLIENT</span>
-                    <span style={{ fontSize: '12px', color: 'var(--text-secondary)' }}>Безопасное подключение</span>
+                    <span style={{ fontSize: '12px', color: 'var(--text-secondary)' }}>{t.secureConnection}</span>
                 </div>
             </div>
 
@@ -288,17 +288,17 @@ export function Sidebar({ servers, subscriptions, activeServerId, onSelectServer
                                                         {/* Stats Row */}
                                                         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                                                             <div style={{ display: 'flex', gap: '8px' }}>
-                                                                <span style={{ display: 'flex', alignItems: 'center', gap: '2px' }} title="Upload">
+                                                                <span style={{ display: 'flex', alignItems: 'center', gap: '2px' }} title={t.upload}>
                                                                     <ArrowUp size={10} />
                                                                     {formatBytes(subscription.upload || 0)}
                                                                 </span>
-                                                                <span style={{ display: 'flex', alignItems: 'center', gap: '2px' }} title="Download">
+                                                                <span style={{ display: 'flex', alignItems: 'center', gap: '2px' }} title={t.download}>
                                                                     <ArrowDown size={10} />
                                                                     {formatBytes(subscription.download || 0)}
                                                                 </span>
                                                             </div>
                                                             {(subscription.total || 0) > 0 && (
-                                                                <span title="Total Limit">
+                                                                <span title={t.total}>
                                                                     / {formatBytes(subscription.total!)}
                                                                 </span>
                                                             )}
@@ -326,7 +326,7 @@ export function Sidebar({ servers, subscriptions, activeServerId, onSelectServer
                                                 ) : null}
                                                 {(subscription.expire || 0) > 0 && (
                                                     <div style={{ fontSize: '10px', color: getDaysRemaining(subscription.expire!) < 3 ? '#ff3b30' : 'var(--text-secondary)' }}>
-                                                        {getDaysRemaining(subscription.expire!)} days left
+                                                        {getDaysRemaining(subscription.expire!)} {t.daysLeft}
                                                     </div>
                                                 )}
                                             </div>
@@ -350,7 +350,7 @@ export function Sidebar({ servers, subscriptions, activeServerId, onSelectServer
                                             alignItems: 'center',
                                             opacity: refreshingSub === subscription.id ? 0.5 : 1,
                                         }}
-                                        title="Refresh subscription"
+                                        title={t.refreshSubscription}
                                     >
                                         <RefreshCw
                                             size={14}

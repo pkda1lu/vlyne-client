@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Download, RefreshCw, X, CheckCircle } from 'lucide-react';
+import { useTranslation } from '../contexts/I18nContext';
 
 interface UpdateInfo {
     version: string;
@@ -8,6 +9,7 @@ interface UpdateInfo {
 }
 
 export function UpdateModal() {
+    const { t } = useTranslation();
     const [updateInfo, setUpdateInfo] = useState<UpdateInfo | null>(null);
     const [isDownloading, setIsDownloading] = useState(false);
     const [progress, setProgress] = useState(0);
@@ -52,7 +54,7 @@ export function UpdateModal() {
             await window.electronAPI.downloadUpdate();
         } catch (err: any) {
             console.error('Failed to start download:', err);
-            setError('Failed to start download');
+            setError(t.downloadStartError);
             setIsDownloading(false);
         }
     };
@@ -62,7 +64,7 @@ export function UpdateModal() {
             await window.electronAPI.installUpdate();
         } catch (err: any) {
             console.error('Failed to install:', err);
-            setError('Failed to install update');
+            setError(t.installError);
         }
     };
 
@@ -101,7 +103,7 @@ export function UpdateModal() {
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                     <h2 style={{ fontSize: '20px', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '10px' }}>
                         <RefreshCw size={24} style={{ color: 'var(--accent-color)' }} />
-                        Доступно обновление
+                        {t.updateAvailable}
                     </h2>
                     {!isDownloading && (
                         <button
@@ -120,16 +122,16 @@ export function UpdateModal() {
 
                 <div style={{ color: 'var(--text-primary)', fontSize: '14px', lineHeight: '1.5' }}>
                     <div style={{ marginBottom: '8px' }}>
-                        Новая версия <strong>{updateInfo.version}</strong> доступна для скачивания.
+                        {t.newVersionAvailable.replace('{{version}}', updateInfo.version)}
                     </div>
                     {isReadyToInstall ? (
                         <div style={{ color: 'var(--success-color)', display: 'flex', alignItems: 'center', gap: '8px' }}>
                             <CheckCircle size={16} />
-                            Обновление загружено и готово к установке.
+                            {t.updateReadyToInstall}
                         </div>
                     ) : (
                         <div style={{ color: 'var(--text-secondary)' }}>
-                            Хотите обновить приложение сейчас?
+                            {t.updateQuestion}
                         </div>
                     )}
                 </div>
@@ -175,7 +177,7 @@ export function UpdateModal() {
                                 fontWeight: 500
                             }}
                         >
-                            Позже
+                            {t.later}
                         </button>
                     )}
 
@@ -198,7 +200,7 @@ export function UpdateModal() {
                             }}
                         >
                             <RefreshCw size={18} />
-                            Перезапустить и обновить
+                            {t.restartAndUpdate}
                         </button>
                     ) : (
                         <button
@@ -221,11 +223,11 @@ export function UpdateModal() {
                             }}
                         >
                             {isDownloading ? (
-                                <>Скачивание...</>
+                                <>{t.downloading}</>
                             ) : (
                                 <>
                                     <Download size={18} />
-                                    Обновить
+                                    {t.update}
                                 </>
                             )}
                         </button>

@@ -385,11 +385,11 @@ export function SettingsModal({ isOpen, onClose, initialTab, allowedTabs, title 
                                     onChange={(e) => updateSettings({ core: { ...settings.core, logLevel: e.target.value as any } })}
                                     className="settings-select"
                                 >
-                                    <option value="none">None</option>
-                                    <option value="error">Error</option>
-                                    <option value="warning">Warning</option>
-                                    <option value="info">Info</option>
-                                    <option value="debug">Debug</option>
+                                    <option value="none">{t.levelNone}</option>
+                                    <option value="error">{t.levelError}</option>
+                                    <option value="warning">{t.levelWarning}</option>
+                                    <option value="info">{t.levelInfo}</option>
+                                    <option value="debug">{t.levelDebug}</option>
                                 </select>
                             </SettingRow>
 

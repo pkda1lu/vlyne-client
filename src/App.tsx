@@ -9,12 +9,14 @@ import { SettingsProvider } from './contexts/SettingsContext';
 import { I18nProvider } from './contexts/I18nContext';
 import { parseProxyLink } from './utils/protocol-parser';
 import { fetchSubscription } from './utils/subscription';
+import { useTranslation } from './contexts/I18nContext';
 import type { ServerConfig, Subscription } from './types/server';
 
 // Server type
 export type Server = ServerConfig;
 
 function AppContent() {
+  const { t } = useTranslation();
   const [servers, setServers] = useState<Server[]>([]);
   const [subscriptions, setSubscriptions] = useState<Subscription[]>([]);
   const [activeServerId, setActiveServerId] = useState<string | null>(null);
@@ -93,7 +95,7 @@ function AppContent() {
     const server = parseProxyLink(link);
     console.log('Parsed server:', server);
     if (!server) {
-      throw new Error('Invalid configuration link. Supported formats: vless://, vmess://, trojan://, ss://');
+      throw new Error(t.invalidLink);
     }
     setServers(prev => [...prev, server]);
     if (!activeServerId) setActiveServerId(server.id);
@@ -198,7 +200,7 @@ function AppContent() {
       ));
     } catch (error) {
       console.error('Failed to refresh subscription:', error);
-      alert('Failed to refresh subscription');
+      alert(t.failedToRefreshSubscription);
     }
   };
 
@@ -250,7 +252,7 @@ function AppContent() {
         }}
         onUpdateServer={(id: string, updates: Partial<Server>) => {
           setServers(prev => prev.map(s =>
-            s.id === id ? { ...s, ...updates } : s
+            s.id === id ? ({ ...s, ...updates } as any) : s
           ));
         }}
       />
@@ -270,7 +272,7 @@ function AppContent() {
         onClose={() => setIsRoutingOpen(false)}
         initialTab="routing"
         allowedTabs={['routing']}
-        title="Маршрутизация"
+        title={t.routing}
       />
       <UpdateModal />
     </div>

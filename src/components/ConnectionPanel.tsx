@@ -1,6 +1,6 @@
 import { type Server } from '../App';
 import { Power, Shield, Globe, Activity, Info, Lock, Gauge, RefreshCw } from 'lucide-react';
-import { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useTranslation } from '../contexts/I18nContext';
 import { useSettings } from '../contexts/SettingsContext';
 import { ServerInfoModal } from './ServerInfoModal';
@@ -44,7 +44,7 @@ export function ConnectionPanel({ server, onStatusChange, onUpdateServer }: Conn
             } else {
                 onStatusChange('disconnected');
                 console.error(res.error);
-                alert('Failed to connect: ' + res.error);
+                alert(`${t.failedToConnect}: ${res.error}`);
             }
         }
     };
@@ -219,29 +219,29 @@ export function ConnectionPanel({ server, onStatusChange, onUpdateServer }: Conn
                 </div>
 
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0,1fr))', gap: '16px' }}>
-                    <InfoCard icon={<Globe size={18} />} label="Протокол" value={server.protocol.toUpperCase()} />
+                    <InfoCard icon={<Globe size={18} />} label={t.protocol} value={server.protocol.toUpperCase()} />
                     <InfoCard
                         icon={<Activity size={18} />}
                         label={t.ping}
                         value={ping !== null ? `${ping} ms` : '...'}
                         action={<RefreshCw size={14} style={{ cursor: 'pointer' }} onClick={measurePing} />}
                     />
-                    <InfoCard icon={<Lock size={18} />} label="Шифрование" value="AES-256" />
+                    <InfoCard icon={<Lock size={18} />} label={t.encryption} value="AES-256" />
                     <InfoCard
                         icon={<Gauge size={18} />}
-                        label="Загрузка"
+                        label={t.load}
                         value={server.load ?? '—'}
                         action={<RefreshCw size={14} style={{ cursor: isConnected ? 'pointer' : 'not-allowed', opacity: isConnected ? 1 : 0.5, animation: isSpeedTesting ? 'spin 1s linear infinite' : 'none' }} onClick={checkSpeed} />}
                     />
-                    <InfoCard icon={<Shield size={18} />} label="Безопасность" value="Активна" />
-                    <InfoCard icon={<Info size={18} />} label="Адрес" value={server.address} />
+                    <InfoCard icon={<Shield size={18} />} label={t.security} value={t.active} />
+                    <InfoCard icon={<Info size={18} />} label={t.address} value={server.address} />
                 </div>
             </div>
         </div>
     );
 }
 
-function InfoCard({ icon, label, value, action }: { icon: JSX.Element; label: string; value: string | number; action?: JSX.Element }) {
+function InfoCard({ icon, label, value, action }: { icon: React.ReactNode; label: string; value: string | number; action?: React.ReactNode }) {
     return (
         <div style={{
             backgroundColor: 'var(--bg-secondary)',
