@@ -1,7 +1,7 @@
 {
   "name": "vlyne-client",
   "private": true,
-  "version": "0.1.33",
+  "version": "0.1.36",
   "main": "dist-electron/main.js",
   "scripts": {
     "dev": "concurrently \"npm run dev:vite\" \"npm run dev:electron\"",
