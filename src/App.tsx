@@ -277,7 +277,7 @@ function AppContent() {
         title={t.routing}
       />
       <UpdateModal forcedInfo={forcedUpdateInfo} onCloseForced={() => setForcedUpdateInfo(null)} />
-      <UpdateToast onOpenModal={(info: any) => setForcedUpdateInfo(info || { version: '2.1.0' })} />
+      <UpdateToast onOpenModal={(info: any) => setForcedUpdateInfo(info)} />
     </div>
   );
 }

@@ -20,17 +20,8 @@ export function UpdateToast({ onOpenModal }: UpdateToastProps) {
             setTimeout(() => setVisible(true), 1000);
         });
 
-        // FOR DEMO PURPOSES: Trigger after 3 seconds if not in production
-        const demoTimeout = setTimeout(() => {
-            if (!updateInfo) {
-                setUpdateInfo({ version: '2.1.0' });
-                setVisible(true);
-            }
-        }, 3000);
-
         return () => {
             cleanup && cleanup();
-            clearTimeout(demoTimeout);
         };
     }, []);
 
