@@ -85,14 +85,16 @@ export function Sidebar({ servers, subscriptions, activeServerId, onSelectServer
             style={{
                 padding: '12px 16px',
                 cursor: 'pointer',
-                backgroundColor: server.id === activeServerId ? 'var(--accent-color)' : 'transparent',
-                borderRadius: '8px',
+                backgroundColor: server.id === activeServerId ? 'rgba(0, 255, 163, 0.1)' : 'transparent',
+                borderRadius: '12px',
                 marginBottom: '4px',
                 display: 'flex',
                 alignItems: 'center',
                 gap: '12px',
-                transition: 'background-color 0.2s',
+                transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
                 position: 'relative',
+                borderLeft: server.id === activeServerId ? '3px solid var(--accent-color)' : '3px solid transparent',
+                boxShadow: server.id === activeServerId ? 'inset 0 0 15px rgba(0, 255, 163, 0.05)' : 'none',
             }}
             onMouseOver={(e) => {
                 if (server.id !== activeServerId) {
@@ -111,31 +113,34 @@ export function Sidebar({ servers, subscriptions, activeServerId, onSelectServer
                 borderRadius: '50%',
                 backgroundColor: getStatusColor(server.status),
                 flexShrink: 0,
+                boxShadow: server.status === 'connected' ? '0 0 10px var(--accent-color)' : 'none',
             }} />
             <div style={{ flex: 1, minWidth: 0 }}>
                 <div style={{
-                    fontWeight: 500,
+                    fontWeight: 700,
                     fontSize: '14px',
-                    color: server.id === activeServerId ? '#fff' : 'var(--text-primary)',
+                    color: server.id === activeServerId ? 'var(--accent-color)' : 'var(--text-primary)',
                     overflow: 'hidden',
                     textOverflow: 'ellipsis',
                     whiteSpace: 'nowrap',
+                    letterSpacing: '0.2px'
                 }}>
                     {server.name}
                 </div>
                 <div style={{
                     fontSize: '12px',
-                    color: server.id === activeServerId ? 'rgba(255,255,255,0.7)' : 'var(--text-secondary)',
+                    color: 'var(--text-secondary)',
                     overflow: 'hidden',
                     textOverflow: 'ellipsis',
                     whiteSpace: 'nowrap',
+                    fontWeight: 500
                 }}>
                     {server.protocol.toUpperCase()} • {server.address}
                     {server.ping !== undefined && (
                         <span style={{
                             marginLeft: '8px',
-                            color: '#fff',
-                            fontWeight: 600
+                            color: server.ping > 0 ? (server.ping < 100 ? 'var(--accent-color)' : '#ffb300') : 'var(--danger-color)',
+                            fontWeight: 700
                         }}>
                             {server.ping > 0 ? `${server.ping}ms` : t.timeout}
                         </span>
@@ -199,29 +204,28 @@ export function Sidebar({ servers, subscriptions, activeServerId, onSelectServer
             display: 'flex',
             flexDirection: 'column',
             height: '100%',
-            boxShadow: '4px 0 18px rgba(0,0,0,0.25)'
         }}>
-            <div style={{ padding: '20px 16px 12px', display: 'flex', alignItems: 'center', gap: '12px' }}>
+            <div style={{ padding: '24px 20px 20px', display: 'flex', alignItems: 'center', gap: '14px' }}>
                 <div style={{
-                    width: 40,
-                    height: 40,
-                    borderRadius: 12,
-                    backgroundColor: '#0b0d0f',
+                    width: 42,
+                    height: 42,
+                    borderRadius: '50%',
+                    overflow: 'hidden',
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
-                    overflow: 'hidden',
-                    border: '1px solid var(--border-color)'
+                    border: '1px solid var(--border-color)',
+                    boxShadow: '0 0 20px rgba(0, 255, 163, 0.1)'
                 }}>
-                    <img src="logo.png" alt="Vlyne" style={{ width: '70%', height: '70%', objectFit: 'contain' }} />
+                    <img src="logo.png" alt="Vlyne" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                 </div>
                 <div style={{ display: 'flex', flexDirection: 'column' }}>
-                    <span style={{ fontSize: '15px', fontWeight: 700, letterSpacing: 0.2 }}>VLYNE CLIENT</span>
-                    <span style={{ fontSize: '12px', color: 'var(--text-secondary)' }}>{t.secureConnection}</span>
+                    <span style={{ fontSize: '16px', fontWeight: 800, letterSpacing: '-0.5px' }}>VLYNE CLIENT</span>
+                    <span style={{ fontSize: '11px', fontWeight: 600, color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.5px' }}>{t.secureConnection}</span>
                 </div>
             </div>
 
-            <div style={{ padding: '8px 8px 12px' }}>
+            <div style={{ padding: '8px 12px 16px' }}>
                 {navItems.map(item => (
                     <button
                         key={item.id}
@@ -231,28 +235,45 @@ export function Sidebar({ servers, subscriptions, activeServerId, onSelectServer
                             display: 'flex',
                             alignItems: 'center',
                             gap: 12,
-                            padding: '10px 12px',
-                            marginBottom: 6,
-                            borderRadius: 10,
-                            backgroundColor: item.active ? 'rgba(0,195,106,0.12)' : 'transparent',
-                            color: item.active ? '#fff' : 'var(--text-secondary)',
+                            padding: '10px 14px',
+                            marginBottom: 4,
+                            borderRadius: 12,
+                            backgroundColor: item.active ? 'rgba(0,255,163,0.12)' : 'transparent',
+                            color: item.active ? 'var(--accent-color)' : 'var(--text-secondary)',
                             textAlign: 'left',
-                            transition: 'background-color 0.2s, color 0.2s'
+                            transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+                            borderLeft: item.active ? '3px solid var(--accent-color)' : '3px solid transparent',
+                            boxShadow: item.active ? 'inset 0 0 20px rgba(0, 255, 163, 0.05)' : 'none',
                         }}
                         onMouseEnter={(e) => {
-                            if (!item.active) e.currentTarget.style.backgroundColor = 'var(--bg-hover)';
+                            if (!item.active) {
+                                e.currentTarget.style.backgroundColor = 'var(--bg-hover)';
+                                e.currentTarget.style.color = 'var(--text-primary)';
+                                e.currentTarget.style.transform = 'translateX(4px)';
+                            }
                         }}
                         onMouseLeave={(e) => {
-                            e.currentTarget.style.backgroundColor = item.active ? 'rgba(0,195,106,0.12)' : 'transparent';
+                            e.currentTarget.style.backgroundColor = item.active ? 'rgba(0,255,163,0.12)' : 'transparent';
+                            if (!item.active) {
+                                e.currentTarget.style.color = 'var(--text-secondary)';
+                                e.currentTarget.style.transform = 'translateX(0)';
+                            }
                         }}
                     >
-                        <item.icon size={18} />
-                        <span style={{ fontWeight: 600, fontSize: 13 }}>{item.label}</span>
+                        <item.icon size={18} className={item.active ? 'glow-text' : ''} />
+                        <span style={{ fontWeight: 700, fontSize: 13, letterSpacing: '0.3px' }}>{item.label}</span>
                     </button>
                 ))}
             </div>
 
-            <div style={{ flex: 1, overflowY: 'auto', padding: '0 16px 12px' }}>
+            <div style={{ flex: 1, overflowY: 'auto', padding: '0 12px 12px' }}>
+                <style>{`
+                    ::-webkit-scrollbar { width: 4px; }
+                    ::-webkit-scrollbar-track { background: transparent; }
+                    ::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.1); border-radius: 10px; }
+                    ::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,0.2); }
+                `}</style>
+
                 {/* Subscriptions */}
                 {subscriptionGroups.length > 0 && (
                     <div style={{ marginBottom: '24px' }}>
@@ -264,58 +285,60 @@ export function Sidebar({ servers, subscriptions, activeServerId, onSelectServer
                                         display: 'flex',
                                         alignItems: 'center',
                                         gap: '8px',
-                                        padding: '8px 4px',
+                                        padding: '8px 8px',
                                         cursor: 'pointer',
                                         userSelect: 'none',
+                                        borderRadius: '8px',
+                                        transition: 'background 0.2s'
                                     }}
+                                    onMouseEnter={(e) => e.currentTarget.style.background = 'var(--bg-hover)'}
+                                    onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}
                                 >
-                                    {expandedSubs.has(subscription.id) ? <ChevronDown size={16} /> : <ChevronRight size={16} />}
+                                    {expandedSubs.has(subscription.id) ? <ChevronDown size={14} color="var(--text-secondary)" /> : <ChevronRight size={14} color="var(--text-secondary)" />}
                                     <div style={{ flex: 1, overflow: 'hidden' }}>
                                         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                                            <span style={{ fontSize: '13px', fontWeight: 600, color: 'var(--text-secondary)' }}>
+                                            <span style={{ fontSize: '13px', fontWeight: 700, color: 'var(--text-primary)' }}>
                                                 {subscription.name}
                                             </span>
-                                            <span style={{ fontSize: '11px', color: 'var(--text-secondary)' }}>
+                                            <span style={{ fontSize: '11px', fontWeight: 600, color: 'var(--text-secondary)', backgroundColor: 'rgba(255,255,255,0.05)', padding: '2px 6px', borderRadius: '4px' }}>
                                                 {subServers.length}
                                             </span>
                                         </div>
 
                                         {/* Metadata Display */}
                                         {(subscription.upload || subscription.download || subscription.total || subscription.expire) ? (
-                                            <div style={{ marginTop: '4px', paddingRight: '4px' }}>
+                                            <div style={{ marginTop: '6px', paddingRight: '4px' }}>
                                                 {(subscription.upload || subscription.download || subscription.total) ? (
-                                                    <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', fontSize: '10px', color: 'var(--text-secondary)' }}>
-                                                        {/* Stats Row */}
+                                                    <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', fontSize: '10px', color: 'var(--text-secondary)' }}>
                                                         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                                                            <div style={{ display: 'flex', gap: '8px' }}>
-                                                                <span style={{ display: 'flex', alignItems: 'center', gap: '2px' }} title={t.upload}>
-                                                                    <ArrowUp size={10} />
+                                                            <div style={{ display: 'flex', gap: '8px', fontWeight: 600 }}>
+                                                                <span style={{ display: 'flex', alignItems: 'center', gap: '2px' }}>
+                                                                    <ArrowUp size={10} color="var(--accent-color)" />
                                                                     {formatBytes(subscription.upload || 0)}
                                                                 </span>
-                                                                <span style={{ display: 'flex', alignItems: 'center', gap: '2px' }} title={t.download}>
-                                                                    <ArrowDown size={10} />
+                                                                <span style={{ display: 'flex', alignItems: 'center', gap: '2px' }}>
+                                                                    <ArrowDown size={10} color="#00d1ff" />
                                                                     {formatBytes(subscription.download || 0)}
                                                                 </span>
                                                             </div>
                                                             {(subscription.total || 0) > 0 && (
-                                                                <span title={t.total}>
+                                                                <span style={{ opacity: 0.6 }}>
                                                                     / {formatBytes(subscription.total!)}
                                                                 </span>
                                                             )}
                                                         </div>
 
-                                                        {/* Progress Bar */}
                                                         {(subscription.total || 0) > 0 && (
                                                             <div style={{
-                                                                height: '4px',
-                                                                backgroundColor: 'rgba(255,255,255,0.1)',
+                                                                height: '3px',
+                                                                backgroundColor: 'rgba(255,255,255,0.05)',
                                                                 borderRadius: '2px',
                                                                 overflow: 'hidden',
                                                                 width: '100%'
                                                             }}>
                                                                 <div style={{
                                                                     height: '100%',
-                                                                    backgroundColor: 'var(--accent-color)',
+                                                                    background: 'linear-gradient(90deg, var(--accent-color), #00d1ff)',
                                                                     width: `${Math.min(100, ((subscription.upload || 0) + (subscription.download || 0)) / subscription.total! * 100)}%`,
                                                                     borderRadius: '2px',
                                                                     transition: 'width 0.3s ease'
@@ -325,62 +348,73 @@ export function Sidebar({ servers, subscriptions, activeServerId, onSelectServer
                                                     </div>
                                                 ) : null}
                                                 {(subscription.expire || 0) > 0 && (
-                                                    <div style={{ fontSize: '10px', color: getDaysRemaining(subscription.expire!) < 3 ? '#ff3b30' : 'var(--text-secondary)' }}>
+                                                    <div style={{ 
+                                                        fontSize: '10px', 
+                                                        fontWeight: 700,
+                                                        marginTop: '4px',
+                                                        color: getDaysRemaining(subscription.expire!) < 3 ? 'var(--danger-color)' : 'var(--text-secondary)' 
+                                                    }}>
                                                         {getDaysRemaining(subscription.expire!)} {t.daysLeft}
                                                     </div>
                                                 )}
                                             </div>
                                         ) : null}
                                     </div>
-                                    <button
-                                        onClick={async (e) => {
-                                            e.stopPropagation();
-                                            setRefreshingSub(subscription.id);
-                                            await onRefreshSubscription(subscription.id);
-                                            setRefreshingSub(null);
-                                        }}
-                                        disabled={refreshingSub === subscription.id}
-                                        style={{
-                                            padding: '4px',
-                                            backgroundColor: 'transparent',
-                                            border: 'none',
-                                            color: 'var(--text-secondary)',
-                                            cursor: refreshingSub === subscription.id ? 'not-allowed' : 'pointer',
-                                            display: 'flex',
-                                            alignItems: 'center',
-                                            opacity: refreshingSub === subscription.id ? 0.5 : 1,
-                                        }}
-                                        title={t.refreshSubscription}
-                                    >
-                                        <RefreshCw
-                                            size={14}
-                                            style={{
-                                                animation: refreshingSub === subscription.id ? 'spin 1s linear infinite' : 'none',
+                                    <div style={{ display: 'flex', gap: '2px' }}>
+                                        <button
+                                            onClick={async (e) => {
+                                                e.stopPropagation();
+                                                setRefreshingSub(subscription.id);
+                                                await onRefreshSubscription(subscription.id);
+                                                setRefreshingSub(null);
                                             }}
-                                        />
-                                    </button>
-                                    <button
-                                        onClick={(e) => {
-                                            e.stopPropagation();
-                                            if (confirm(`${t.deleteSubscription} "${subscription.name}" ${t.deleteSubscriptionConfirm}`)) {
-                                                onDeleteSubscription(subscription.id);
-                                            }
-                                        }}
-                                        style={{
-                                            padding: '4px',
-                                            backgroundColor: 'transparent',
-                                            border: 'none',
-                                            color: 'var(--text-secondary)',
-                                            cursor: 'pointer',
-                                            display: 'flex',
-                                            alignItems: 'center',
-                                        }}
-                                    >
-                                        <Trash2 size={14} />
-                                    </button>
+                                            disabled={refreshingSub === subscription.id}
+                                            style={{
+                                                padding: '6px',
+                                                borderRadius: '6px',
+                                                color: 'var(--text-secondary)',
+                                                cursor: refreshingSub === subscription.id ? 'not-allowed' : 'pointer',
+                                                transition: 'all 0.2s'
+                                            }}
+                                            onMouseEnter={(e) => e.currentTarget.style.backgroundColor = 'rgba(255,255,255,0.1)'}
+                                            onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
+                                            title={t.refreshSubscription}
+                                        >
+                                            <RefreshCw
+                                                size={14}
+                                                style={{
+                                                    animation: refreshingSub === subscription.id ? 'spin 1s linear infinite' : 'none',
+                                                }}
+                                            />
+                                        </button>
+                                        <button
+                                            onClick={(e) => {
+                                                e.stopPropagation();
+                                                if (confirm(`${t.deleteSubscription} "${subscription.name}" ${t.deleteSubscriptionConfirm}`)) {
+                                                    onDeleteSubscription(subscription.id);
+                                                }
+                                            }}
+                                            style={{
+                                                padding: '6px',
+                                                borderRadius: '6px',
+                                                color: 'var(--text-secondary)',
+                                                transition: 'all 0.2s'
+                                            }}
+                                            onMouseEnter={(e) => {
+                                                e.currentTarget.style.backgroundColor = 'rgba(255, 77, 77, 0.1)';
+                                                e.currentTarget.style.color = 'var(--danger-color)';
+                                            }}
+                                            onMouseLeave={(e) => {
+                                                e.currentTarget.style.backgroundColor = 'transparent';
+                                                e.currentTarget.style.color = 'var(--text-secondary)';
+                                            }}
+                                        >
+                                            <Trash2 size={14} />
+                                        </button>
+                                    </div>
                                 </div>
                                 {expandedSubs.has(subscription.id) && (
-                                    <div style={{ marginLeft: '8px' }}>
+                                    <div style={{ paddingLeft: '8px' }}>
                                         {subServers.map(server => renderServer(server, false))}
                                     </div>
                                 )}
@@ -393,11 +427,13 @@ export function Sidebar({ servers, subscriptions, activeServerId, onSelectServer
                 {individualServers.length > 0 && (
                     <div>
                         <div style={{
-                            fontSize: '13px',
-                            fontWeight: 600,
+                            fontSize: '11px',
+                            fontWeight: 700,
+                            letterSpacing: '1px',
+                            textTransform: 'uppercase',
                             color: 'var(--text-secondary)',
-                            padding: '8px 4px',
-                            marginBottom: '8px',
+                            padding: '8px 8px',
+                            marginBottom: '4px',
                         }}>
                             {t.individualServers}
                         </div>
@@ -411,21 +447,31 @@ export function Sidebar({ servers, subscriptions, activeServerId, onSelectServer
                     onClick={onAdd}
                     style={{
                         width: '100%',
-                        padding: '12px',
-                        backgroundColor: 'var(--accent-color)',
-                        color: '#fff',
-                        borderRadius: '8px',
+                        padding: '14px',
+                        backgroundColor: 'rgba(255,255,255,0.03)',
+                        color: 'var(--text-primary)',
+                        border: '1px solid var(--border-color)',
+                        borderRadius: '12px',
                         display: 'flex',
                         alignItems: 'center',
                         justifyContent: 'center',
-                        gap: '8px',
-                        fontWeight: 500,
-                        transition: 'background-color 0.2s'
+                        gap: '10px',
+                        fontSize: '14px',
+                        fontWeight: 700,
+                        transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)'
                     }}
-                    onMouseEnter={(e) => e.currentTarget.style.backgroundColor = 'var(--accent-hover)'}
-                    onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'var(--accent-color)'}
+                    onMouseEnter={(e) => {
+                        e.currentTarget.style.backgroundColor = 'rgba(255,255,255,0.06)';
+                        e.currentTarget.style.borderColor = 'rgba(255,255,255,0.15)';
+                        e.currentTarget.style.transform = 'translateY(-1px)';
+                    }}
+                    onMouseLeave={(e) => {
+                        e.currentTarget.style.backgroundColor = 'rgba(255,255,255,0.03)';
+                        e.currentTarget.style.borderColor = 'var(--border-color)';
+                        e.currentTarget.style.transform = 'translateY(0)';
+                    }}
                 >
-                    <Plus size={20} />
+                    <Plus size={18} />
                     {t.add}
                 </button>
             </div>

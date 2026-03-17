@@ -40,7 +40,8 @@ export function ServerInfoModal({ isOpen, onClose, server }: ServerInfoModalProp
             left: 0,
             right: 0,
             bottom: 0,
-            backgroundColor: 'rgba(0, 0, 0, 0.7)',
+            backgroundColor: 'rgba(0, 0, 0, 0.85)',
+            backdropFilter: 'blur(20px)',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
@@ -48,70 +49,116 @@ export function ServerInfoModal({ isOpen, onClose, server }: ServerInfoModalProp
         }} onClick={onClose}>
             <div style={{
                 backgroundColor: 'var(--bg-secondary)',
-                borderRadius: '12px',
+                border: '1px solid var(--border-color)',
+                borderRadius: '32px',
                 width: '90%',
-                maxWidth: '600px',
-                maxHeight: '90vh',
+                maxWidth: '650px',
+                maxHeight: '85vh',
                 overflowY: 'auto',
-                padding: '24px',
-                boxShadow: '0 8px 32px rgba(0, 0, 0, 0.3)',
+                padding: '40px',
+                boxShadow: '0 40px 100px rgba(0, 0, 0, 0.6)',
+                position: 'relative',
+                overflow: 'hidden'
             }} onClick={e => e.stopPropagation()}>
+                {/* Background Glow */}
+                <div style={{ 
+                    position: 'absolute', 
+                    top: '-50px', 
+                    right: '-50px', 
+                    width: '300px', 
+                    height: '300px', 
+                    background: 'radial-gradient(circle, var(--accent-glow) 0%, transparent 70%)',
+                    zIndex: 0,
+                    pointerEvents: 'none'
+                }} />
 
                 {/* Header */}
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '24px' }}>
-                    <h2 style={{ fontSize: '20px', fontWeight: 600 }}>{t.serverInfo || 'Server Info'}</h2>
-                    <button onClick={onClose} style={{ padding: '4px', color: 'var(--text-secondary)' }}>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '32px', position: 'relative', zIndex: 1 }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+                        <div style={{ padding: '12px', borderRadius: '14px', backgroundColor: 'rgba(255,255,255,0.03)', color: 'var(--accent-color)' }}>
+                            <Check size={24} />
+                        </div>
+                        <h2 style={{ fontSize: '26px', fontWeight: 800, letterSpacing: '-0.5px' }}>{t.serverInfo || 'Server Info'}</h2>
+                    </div>
+                    <button onClick={onClose} style={{ 
+                        padding: '10px', 
+                        color: 'var(--text-secondary)',
+                        backgroundColor: 'rgba(255,255,255,0.03)',
+                        borderRadius: '12px',
+                        border: '1px solid var(--border-color)',
+                        transition: 'all 0.2s'
+                    }} onMouseEnter={(e) => e.currentTarget.style.backgroundColor = 'rgba(255,255,255,0.08)'} onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'rgba(255,255,255,0.03)'}>
                         <X size={24} />
                     </button>
                 </div>
 
                 {/* Content */}
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '24px', position: 'relative', zIndex: 1 }}>
 
                     {/* Link Section */}
-                    <div style={{ marginBottom: '20px' }}>
-                        <label style={{ display: 'block', marginBottom: '8px', fontSize: '14px', fontWeight: 500, color: 'var(--text-secondary)' }}>
+                    <div>
+                        <label style={{ fontSize: '13px', fontWeight: 700, color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '1px', display: 'block', marginBottom: '12px' }}>
                             {t.configurationLink || 'Configuration Link'}
                         </label>
-                        <div style={{ position: 'relative' }}>
+                        <div style={{ 
+                            position: 'relative',
+                            backgroundColor: 'rgba(255,255,255,0.02)',
+                            borderRadius: '16px',
+                            border: '1px solid var(--border-color)',
+                            overflow: 'hidden'
+                        }}>
                             <textarea
                                 readOnly
                                 value={server.originalLink || ''}
                                 style={{
                                     width: '100%',
-                                    height: '80px',
-                                    padding: '12px',
-                                    paddingRight: '40px',
-                                    backgroundColor: 'var(--bg-primary)',
-                                    border: '1px solid var(--border-color)',
-                                    borderRadius: '8px',
+                                    height: '100px',
+                                    padding: '16px',
+                                    paddingRight: '60px',
+                                    backgroundColor: 'transparent',
+                                    border: 'none',
                                     color: 'var(--text-primary)',
-                                    fontSize: '12px',
+                                    fontSize: '13px',
                                     resize: 'none',
-                                    fontFamily: 'monospace'
+                                    fontFamily: 'monospace',
+                                    lineHeight: '1.6',
+                                    outline: 'none'
                                 }}
                             />
                             <button
                                 onClick={copyLink}
                                 style={{
                                     position: 'absolute',
-                                    top: '8px',
-                                    right: '8px',
-                                    padding: '6px',
-                                    backgroundColor: 'var(--bg-secondary)',
+                                    top: '12px',
+                                    right: '12px',
+                                    padding: '10px',
+                                    backgroundColor: 'rgba(255,255,255,0.05)',
                                     border: '1px solid var(--border-color)',
-                                    borderRadius: '6px',
-                                    color: copied ? 'var(--success-color)' : 'var(--text-secondary)',
-                                    cursor: 'pointer'
+                                    borderRadius: '12px',
+                                    color: copied ? 'var(--accent-color)' : 'var(--text-secondary)',
+                                    cursor: 'pointer',
+                                    transition: 'all 0.2s',
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    justifyContent: 'center'
                                 }}
+                                onMouseEnter={(e) => e.currentTarget.style.backgroundColor = 'rgba(255,255,255,0.1)'}
+                                onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'rgba(255,255,255,0.05)'}
                             >
-                                {copied ? <Check size={16} /> : <Copy size={16} />}
+                                {copied ? <Check size={18} /> : <Copy size={18} />}
                             </button>
                         </div>
                     </div>
 
-                    {/* Details Table */}
-                    <div style={{ display: 'flex', flexDirection: 'column' }}>
+                    {/* Details Grid */}
+                    <div style={{ 
+                        backgroundColor: 'rgba(255,255,255,0.02)',
+                        borderRadius: '24px',
+                        padding: '24px 32px',
+                        border: '1px solid var(--border-color)',
+                        display: 'flex',
+                        flexDirection: 'column'
+                    }}>
                         <InfoRow label={t.name} value={server.name} />
                         <InfoRow label={t.protocol} value={server.protocol.toUpperCase()} />
                         <InfoRow label={t.address} value={server.address} />

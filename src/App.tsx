@@ -5,6 +5,7 @@ import { ConnectionPanel } from './components/ConnectionPanel';
 import { UnifiedAddModal } from './components/UnifiedAddModal';
 import { SettingsModal, type SettingsTab } from './components/SettingsModal';
 import { UpdateModal } from './components/UpdateModal';
+import { UpdateToast } from './components/UpdateToast';
 import { SettingsProvider } from './contexts/SettingsContext';
 import { I18nProvider } from './contexts/I18nContext';
 import { parseProxyLink } from './utils/protocol-parser';
@@ -49,6 +50,7 @@ function AppContent() {
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [settingsTab, setSettingsTab] = useState<SettingsTab>('general');
   const [isRoutingOpen, setIsRoutingOpen] = useState(false);
+  const [forcedUpdateInfo, setForcedUpdateInfo] = useState<any>(null);
 
   useEffect(() => {
     if (!window.electronAPI?.onVpnStopped) return;
@@ -224,7 +226,7 @@ function AppContent() {
   };
 
   return (
-    <div style={{ display: 'flex', height: '100vh', width: '100vw' }}>
+    <div style={{ display: 'flex', height: '100vh', width: '100vw', backgroundColor: 'var(--bg-primary)', color: 'var(--text-primary)', overflow: 'hidden' }}>
       <Sidebar
         servers={servers}
         subscriptions={subscriptions}
@@ -274,7 +276,8 @@ function AppContent() {
         allowedTabs={['routing']}
         title={t.routing}
       />
-      <UpdateModal />
+      <UpdateModal forcedInfo={forcedUpdateInfo} onCloseForced={() => setForcedUpdateInfo(null)} />
+      <UpdateToast onOpenModal={(info: any) => setForcedUpdateInfo(info || { version: '2.1.0' })} />
     </div>
   );
 }

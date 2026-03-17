@@ -134,108 +134,149 @@ export function ConnectionPanel({ server, onStatusChange, onUpdateServer }: Conn
     }
 
     return (
-        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', height: '100%', backgroundColor: 'var(--bg-primary)', padding: '32px' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
-                <div>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                        <div style={{
-                            width: 10,
-                            height: 10,
-                            borderRadius: '50%',
-                            backgroundColor: isConnected ? 'var(--success-color)' : isConnecting ? '#ffb300' : 'var(--text-secondary)'
-                        }} />
-                        <span style={{ fontSize: 14, color: 'var(--text-secondary)' }}>
-                            {isConnecting ? t.connecting : (isConnected ? t.connected : t.notConnected)}
-                        </span>
+        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', height: '100%', backgroundColor: 'var(--bg-primary)', padding: '40px', position: 'relative', overflow: 'hidden' }}>
+            {/* Background Decor */}
+            <div style={{ 
+                position: 'absolute', 
+                top: '-100px', 
+                right: '-200px', 
+                width: '600px', 
+                height: '600px', 
+                background: 'radial-gradient(circle, var(--accent-glow) 0%, transparent 70%)',
+                zIndex: 0
+            }} />
+
+            <div style={{ position: 'relative', zIndex: 1, display: 'flex', flexDirection: 'column', height: '100%' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '40px' }}>
+                    <div>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 4 }}>
+                            <div style={{
+                                width: 8,
+                                height: 8,
+                                borderRadius: '50%',
+                                backgroundColor: isConnected ? 'var(--accent-color)' : isConnecting ? '#ffb300' : 'var(--text-secondary)',
+                                boxShadow: isConnected ? `0 0 10px var(--accent-color)` : 'none'
+                            }} />
+                            <span style={{ fontSize: 13, fontWeight: 700, color: isConnected ? 'var(--accent-color)' : 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                                {isConnecting ? t.connecting : (isConnected ? t.connected : t.notConnected)}
+                            </span>
+                        </div>
+                        <h1 style={{ fontSize: '32px', fontWeight: 800, letterSpacing: '-0.5px' }}>{server.name}</h1>
+                        <div style={{ fontSize: 13, color: 'var(--text-secondary)', fontWeight: 500 }}>{server.address}</div>
                     </div>
-                    <h1 style={{ fontSize: '26px', fontWeight: 700, marginTop: 6 }}>{server.name}</h1>
-                    <div style={{ fontSize: 13, color: 'var(--text-secondary)' }}>{server.address}</div>
-                </div>
-                <button
-                    onClick={() => setShowInfo(true)}
-                    style={{
-                        padding: '10px',
-                        borderRadius: '12px',
-                        backgroundColor: 'var(--bg-secondary)',
-                        color: 'var(--text-secondary)',
-                        border: `1px solid var(--border-color)`,
-                        cursor: 'pointer'
-                    }}
-                    title={t.serverInfo || 'Server Info'}
-                >
-                    <Info size={20} />
-                </button>
-            </div>
-
-            <ServerInfoModal isOpen={showInfo} onClose={() => setShowInfo(false)} server={server} />
-
-            <div style={{
-                flex: 1,
-                display: 'grid',
-                gridTemplateColumns: '1fr 1fr',
-                gap: '24px',
-                alignItems: 'center'
-            }}>
-                <div style={{
-                    backgroundColor: 'var(--bg-secondary)',
-                    border: `1px solid var(--border-color)`,
-                    borderRadius: '18px',
-                    padding: '28px',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    boxShadow: '0 20px 60px rgba(0,0,0,0.35)'
-                }}>
                     <button
+                        onClick={() => setShowInfo(true)}
                         style={{
-                            width: '210px',
-                            height: '210px',
-                            borderRadius: '32px',
-                            background: isConnected
-                                ? 'linear-gradient(145deg, #00c36a 0%, #00a85c 100%)'
-                                : 'linear-gradient(145deg, #1c2026 0%, #15191f 100%)',
-                            border: `1px solid ${isConnected ? 'rgba(0,195,106,0.6)' : 'var(--border-color)'}`,
-                            color: '#fff',
-                            display: 'flex',
-                            flexDirection: 'column',
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                            gap: '14px',
-                            transition: 'all 0.25s ease',
-                            boxShadow: isConnected ? '0 0 60px rgba(0,195,106,0.45)' : 'none',
-                            cursor: isConnecting ? 'wait' : 'pointer'
+                            padding: '12px',
+                            borderRadius: '14px',
+                            backgroundColor: 'rgba(255,255,255,0.03)',
+                            color: 'var(--text-secondary)',
+                            border: `1px solid var(--border-color)`,
+                            cursor: 'pointer',
+                            transition: 'all 0.2s'
                         }}
-                        disabled={isConnecting}
-                        onClick={handleToggleVpn}
+                        onMouseEnter={(e) => e.currentTarget.style.backgroundColor = 'var(--bg-hover)'}
+                        onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'rgba(255,255,255,0.03)'}
+                        title={t.serverInfo || 'Server Info'}
                     >
-                        <Power size={62} />
-                        <span style={{ fontSize: '16px', fontWeight: 700 }}>
-                            {isConnecting ? t.connecting : (isConnected ? t.disconnect : t.connect)}
-                        </span>
-                        <span style={{ fontSize: 13, color: 'rgba(255,255,255,0.8)' }}>
-                            {isConnected ? elapsed : '00:00:00'}
-                        </span>
+                        <Info size={20} />
                     </button>
                 </div>
 
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0,1fr))', gap: '16px' }}>
-                    <InfoCard icon={<Globe size={18} />} label={t.protocol} value={server.protocol.toUpperCase()} />
-                    <InfoCard
-                        icon={<Activity size={18} />}
-                        label={t.ping}
-                        value={ping !== null ? `${ping} ms` : '...'}
-                        action={<RefreshCw size={14} style={{ cursor: 'pointer' }} onClick={measurePing} />}
-                    />
-                    <InfoCard icon={<Lock size={18} />} label={t.encryption} value="AES-256" />
-                    <InfoCard
-                        icon={<Gauge size={18} />}
-                        label={t.load}
-                        value={server.load ?? '—'}
-                        action={<RefreshCw size={14} style={{ cursor: isConnected ? 'pointer' : 'not-allowed', opacity: isConnected ? 1 : 0.5, animation: isSpeedTesting ? 'spin 1s linear infinite' : 'none' }} onClick={checkSpeed} />}
-                    />
-                    <InfoCard icon={<Shield size={18} />} label={t.security} value={t.active} />
-                    <InfoCard icon={<Info size={18} />} label={t.address} value={server.address} />
+                <ServerInfoModal isOpen={showInfo} onClose={() => setShowInfo(false)} server={server} />
+
+                <div style={{
+                    flex: 1,
+                    display: 'flex',
+                    flexDirection: 'column',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: '60px'
+                }}>
+                    {/* Power Button */}
+                    <div style={{ position: 'relative' }}>
+                        <button
+                            style={{
+                                width: '220px',
+                                height: '220px',
+                                borderRadius: '50%',
+                                background: isConnected
+                                    ? 'linear-gradient(135deg, var(--accent-color) 0%, #00d1ff 100%)'
+                                    : 'linear-gradient(135deg, #1a1f26 0%, #0d0f14 100%)',
+                                border: `2px solid ${isConnected ? 'rgba(255,255,255,0.4)' : 'rgba(255,255,255,0.05)'}`,
+                                color: isConnected ? '#000' : 'var(--text-secondary)',
+                                display: 'flex',
+                                flexDirection: 'column',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                gap: '14px',
+                                transition: 'all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275)',
+                                boxShadow: isConnected ? `0 0 60px var(--accent-glow)` : 'none',
+                                cursor: isConnecting ? 'wait' : 'pointer',
+                                zIndex: 2,
+                                position: 'relative'
+                            }}
+                            disabled={isConnecting}
+                            onClick={handleToggleVpn}
+                        >
+                            <Power size={70} strokeWidth={1.5} />
+                            <div style={{ textAlign: 'center' }}>
+                                <div style={{ fontSize: '15px', fontWeight: 800 }}>
+                                    {isConnecting ? t.connecting : (isConnected ? t.disconnect : t.connect)}
+                                </div>
+                                <div style={{ fontSize: 13, fontWeight: 700, opacity: 0.8 }}>
+                                    {isConnected ? elapsed : '00:00:00'}
+                                </div>
+                            </div>
+                        </button>
+                        {isConnected && (
+                            <div style={{
+                                position: 'absolute',
+                                top: '-20px',
+                                left: '-20px',
+                                right: '-20px',
+                                bottom: '-20px',
+                                borderRadius: '50%',
+                                border: '2px solid var(--accent-color)',
+                                opacity: 0.2,
+                                animation: 'spin 10s linear infinite'
+                            }} />
+                        )}
+                    </div>
+
+                    {/* Metrics Grid */}
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 200px)', gap: '20px' }}>
+                        <InfoCard icon={<Globe size={16} color="var(--accent-color)" />} label={t.protocol} value={server.protocol.toUpperCase()} />
+                        <InfoCard
+                            icon={<Activity size={16} color="var(--accent-color)" />}
+                            label={t.ping}
+                            value={ping !== null ? `${ping} ms` : '...'}
+                            action={<RefreshCw size={14} style={{ cursor: 'pointer', opacity: 0.5 }} onClick={measurePing} />}
+                        />
+                         <InfoCard
+                            icon={<Gauge size={16} color="#00d1ff" />}
+                            label={t.load}
+                            value={server.load ?? '—'}
+                            action={<RefreshCw size={14} style={{ cursor: isConnected ? 'pointer' : 'not-allowed', opacity: isConnected ? 0.5 : 0.2, animation: isSpeedTesting ? 'spin 1s linear infinite' : 'none' }} onClick={checkSpeed} />}
+                        />
+                        <InfoCard icon={<Lock size={16} color="var(--accent-color)" />} label={t.encryption} value="AES-256-GCM" />
+                        <InfoCard icon={<Shield size={16} color="var(--accent-color)" />} label={t.security} value={t.active} />
+                        <InfoCard icon={<Globe size={16} color="var(--accent-color)" />} label="IP Address" value={server.address} />
+                    </div>
                 </div>
+
+                <footer style={{ marginTop: 'auto', display: 'flex', justifyContent: 'center' }}>
+                    <div className="glass-card" style={{ padding: '12px 24px', borderRadius: '40px', display: 'flex', gap: '32px' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: 'var(--text-secondary)', fontSize: '11px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                            <Shield size={14} color="var(--accent-color)" />
+                            UDP Enabled
+                        </div>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: 'var(--text-secondary)', fontSize: '11px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                            <Lock size={14} color="var(--accent-color)" />
+                            IPv6 Protection
+                        </div>
+                    </div>
+                </footer>
             </div>
         </div>
     );
@@ -244,23 +285,24 @@ export function ConnectionPanel({ server, onStatusChange, onUpdateServer }: Conn
 function InfoCard({ icon, label, value, action }: { icon: React.ReactNode; label: string; value: string | number; action?: React.ReactNode }) {
     return (
         <div style={{
-            backgroundColor: 'var(--bg-secondary)',
+            backgroundColor: 'rgba(255,255,255,0.02)',
             border: `1px solid var(--border-color)`,
-            borderRadius: '14px',
-            padding: '14px 16px',
+            borderRadius: '18px',
+            padding: '18px',
             display: 'flex',
             flexDirection: 'column',
-            gap: 6,
-            position: 'relative'
-        }}>
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', color: 'var(--text-secondary)', fontSize: 12 }}>
+            gap: 10,
+            position: 'relative',
+            transition: 'all 0.2s'
+        }} className="rd-hover-effect">
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', color: 'var(--text-secondary)', fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.5px' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                     {icon}
                     <span>{label}</span>
                 </div>
                 {action}
             </div>
-            <div style={{ fontSize: 15, fontWeight: 700 }}>{value}</div>
+            <div style={{ fontSize: 17, fontWeight: 800, color: 'var(--text-primary)' }}>{value}</div>
         </div>
     );
 }
