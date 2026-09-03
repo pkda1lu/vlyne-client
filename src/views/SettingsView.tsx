@@ -1,6 +1,6 @@
 import { disable as disableAutostart, enable as enableAutostart } from '@tauri-apps/plugin-autostart';
 import { FolderOpen, FileJson } from 'lucide-react';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 
 import { Card, CommitInput, Field, Modal, Switch } from '../components/ui';
 import { useI18n } from '../hooks/useI18n';
@@ -13,10 +13,21 @@ export function SettingsView() {
   const settings = useStore((s) => s.data?.settings);
   const save = useStore((s) => s.saveSettings);
   const toastError = useStore((s) => s.toastError);
+  const toast = useStore((s) => s.toast);
   const appVersion = useStore((s) => s.appVersion);
   const coreVersion = useStore((s) => s.coreVersion);
 
   const [preview, setPreview] = useState<string | null>(null);
+
+  // The service address is stored with the account rather than in settings: it
+  // sits next to a credential, and the config preview renders settings verbatim.
+  const [apiBase, setApiBase] = useState('');
+  useEffect(() => {
+    api
+      .accountInfo()
+      .then((info) => setApiBase(info.apiBase))
+      .catch(() => setApiBase(''));
+  }, []);
 
   if (!settings) return null;
 
@@ -229,6 +240,27 @@ export function SettingsView() {
             onCommit={(v) => {
               const seconds = Number(v);
               if (seconds >= 30 && seconds <= 3600) patch((d) => (d.probe.intervalS = seconds));
+            }}
+          />
+        </Field>
+      </Card>
+
+      <Card title={t('settings.service')}>
+        <Field label={t('settings.apiBase')} hint={t('settings.apiBaseHint')}>
+          <CommitInput
+            value={apiBase}
+            placeholder={t('settings.apiBaseDefault')}
+            ariaLabel={t('settings.apiBase')}
+            onCommit={async (value) => {
+              try {
+                // Show what was stored, not what was typed: a bare host gains
+                // a scheme, and a rejected address must not appear accepted.
+                setApiBase(await api.accountSetApiBase(value));
+                toast('success', t('settings.apiBaseSaved'));
+              } catch (error) {
+                toastError(error);
+                setApiBase((await api.accountInfo()).apiBase);
+              }
             }}
           />
         </Field>

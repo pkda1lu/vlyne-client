@@ -75,7 +75,8 @@ export const api = {
   accountInfo: () => invoke<AccountInfo>('account_info'),
   accountLink: (code: string) => invoke<AccountInfo>('account_link', { code }),
   accountUnlink: () => invoke<void>('account_unlink'),
-  accountSetApiBase: (base: string) => invoke<void>('account_set_api_base', { base }),
+  /** Resolves to the address that was actually stored, after normalising. */
+  accountSetApiBase: (base: string) => invoke<string>('account_set_api_base', { base }),
   accountState: () => invoke<ShopState>('account_state'),
   accountQuote: (pack: string, promo?: string) =>
     invoke<{ price: number; percent: number }>('account_quote', { pack, promo: promo ?? null }),

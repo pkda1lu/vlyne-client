@@ -414,10 +414,14 @@ pub async fn account_unlink(state: App<'_>) -> Result<()> {
 
 /// Point the client at another deployment. Empty restores the default.
 #[tauri::command]
-pub async fn account_set_api_base(state: App<'_>, base: String) -> Result<()> {
-    state.store.write(|d| d.account.api_base = base.trim().to_string())?;
+pub async fn account_set_api_base(state: App<'_>, base: String) -> Result<String> {
+    let normalised = crate::account::normalise_base(&base)?;
+    state.store.write(|d| d.account.api_base = normalised)?;
     state.emit_data_changed();
-    Ok(())
+
+    // Hand back what was actually stored, so the field shows the address that
+    // will be used rather than whatever was typed.
+    Ok(state.store.read(|d| d.account.base().to_string()))
 }
 
 /// Quota, packs and referral programme, passed through from the service.

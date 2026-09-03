@@ -205,6 +205,11 @@ export const ru = {
     probeIntervalHint:
       'Как часто автовыбор перемеряет серверы. От этого зависит, как быстро он уйдёт с упавшего.',
 
+    service: 'Сервис',
+    apiBase: 'Адрес сервиса',
+    apiBaseHint: 'Куда приложение ходит за подпиской и покупками. Пустое поле — стандартный адрес.',
+    apiBaseDefault: 'https://vlessconf.ru:8444',
+    apiBaseSaved: 'Адрес сервиса сохранён',
     core: 'Ядро',
     coreVersion: 'Версия ядра',
     appVersion: 'Версия приложения',

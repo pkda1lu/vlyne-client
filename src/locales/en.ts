@@ -208,6 +208,11 @@ export const en: typeof ru = {
     probeIntervalHint:
       'How often automatic mode re-measures its servers, and so how quickly it leaves a dead one.',
 
+    service: 'Service',
+    apiBase: 'Service address',
+    apiBaseHint: 'Where the app goes for your subscription and purchases. Leave empty for the standard address.',
+    apiBaseDefault: 'https://vlessconf.ru:8444',
+    apiBaseSaved: 'Service address saved',
     core: 'Core',
     coreVersion: 'Core version',
     appVersion: 'App version',

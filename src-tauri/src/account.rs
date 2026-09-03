@@ -57,6 +57,59 @@ impl Account {
     }
 }
 
+/// Whether a host is this machine, where plain HTTP is nobody else's business.
+fn is_loopback(host: &str) -> bool {
+    let host = host.split(':').next().unwrap_or(host);
+    matches!(host, "localhost" | "127.0.0.1" | "::1" | "[::1]")
+}
+
+/// Clean up an address the user typed, or explain why it cannot be used.
+///
+/// Every request to this address carries the device token, so plain HTTP to
+/// anything but this machine is refused outright rather than quietly downgraded:
+/// the token is a credential, and one typed "s" should not be what stands
+/// between it and the open network.
+pub fn normalise_base(raw: &str) -> Result<String> {
+    let trimmed = raw.trim();
+    if trimmed.is_empty() {
+        return Ok(String::new());
+    }
+
+    // A bare host is the common way to type this, and https is the only scheme
+    // worth assuming. Slashes are trimmed from the parsed result rather than
+    // the input, so trimming cannot destroy the scheme it is meant to keep.
+    let with_scheme = if trimmed.contains("://") {
+        trimmed.to_string()
+    } else {
+        format!("https://{trimmed}")
+    };
+
+    let parsed = url::Url::parse(&with_scheme)
+        .map_err(|e| Error::Account(format!("{trimmed} is not a valid address: {e}")))?;
+
+    let host = parsed.host_str().unwrap_or_default();
+    if host.is_empty() {
+        return Err(Error::Account(format!("{trimmed} names no host")));
+    }
+
+    match parsed.scheme() {
+        "https" => {}
+        "http" if is_loopback(host) => {}
+        "http" => {
+            return Err(Error::Account(format!(
+                "{trimmed} would send your sign-in token unencrypted; use https://"
+            )))
+        }
+        other => {
+            return Err(Error::Account(format!(
+                "{other}:// is not an address this client can use"
+            )))
+        }
+    }
+
+    Ok(parsed.as_str().trim_end_matches('/').to_string())
+}
+
 /// What the interface is allowed to know about the link. Never the token.
 #[derive(Debug, Clone, Serialize)]
 #[serde(rename_all = "camelCase")]
@@ -139,7 +192,8 @@ async fn post_once(
     body: &Value,
     proxy_port: Option<u16>,
 ) -> Result<Value> {
-    let mut request = client(proxy_port)?.post(format!("{base}{path}")).json(body);
+    let url = format!("{base}{path}");
+    let mut request = client(proxy_port)?.post(&url).json(body);
     if let Some(token) = token {
         request = request.bearer_auth(token);
     }
@@ -147,7 +201,7 @@ async fn post_once(
     let response = request
         .send()
         .await
-        .map_err(|e| Error::Account(format!("the service is unreachable: {e}")))?;
+        .map_err(|e| Error::Account(format!("{url} is unreachable: {e}")))?;
 
     let status = response.status();
     let text = response
@@ -155,8 +209,19 @@ async fn post_once(
         .await
         .map_err(|e| Error::Account(e.to_string()))?;
 
+    // Name the address and quote the answer. An error that says only "bad
+    // response" leaves no way to tell a wrong address from a broken service,
+    // and the address is configurable, so getting it wrong is easy.
     let value: Value = serde_json::from_str(&text).map_err(|_| {
-        Error::Account(format!("the service answered {status} with an unreadable body"))
+        let snippet: String = text.chars().take(160).collect();
+        Error::Account(format!(
+            "{url} answered {status}, and not with JSON: {}",
+            if snippet.trim().is_empty() {
+                "(empty body)".to_string()
+            } else {
+                snippet.replace(['\n', '\r'], " ")
+            }
+        ))
     })?;
 
     let envelope: ApiEnvelope = serde_json::from_value(value.clone()).unwrap_or(ApiEnvelope {
@@ -171,7 +236,7 @@ async fn post_once(
         return Err(Error::Account(
             envelope
                 .error
-                .unwrap_or_else(|| format!("the service answered {status}")),
+                .unwrap_or_else(|| format!("{url} answered {status}")),
         ));
     }
 
@@ -281,6 +346,41 @@ mod tests {
         let account = Account::default();
         assert_eq!(account.base(), DEFAULT_API_BASE);
         assert!(!account.is_linked());
+    }
+
+    /// Every request to the service carries the device token, so a plain HTTP
+    /// address to anything but this machine has to be refused, not fixed up.
+    #[test]
+    fn plain_http_to_a_remote_host_is_refused() {
+        let err = normalise_base("http://vlessconf.ru:8444").unwrap_err();
+        assert!(err.to_string().contains("https://"), "{err}");
+    }
+
+    #[test]
+    fn plain_http_to_this_machine_is_allowed() {
+        // A local test deployment has nothing to protect from the network.
+        for base in ["http://127.0.0.1:8099", "http://localhost:8099"] {
+            assert_eq!(normalise_base(base).unwrap(), base);
+        }
+    }
+
+    #[test]
+    fn a_bare_host_gains_https() {
+        assert_eq!(
+            normalise_base(" vlessconf.ru:8444/ ").unwrap(),
+            "https://vlessconf.ru:8444"
+        );
+    }
+
+    #[test]
+    fn an_empty_address_means_the_default() {
+        assert_eq!(normalise_base("   ").unwrap(), "");
+    }
+
+    #[test]
+    fn nonsense_is_reported_rather_than_stored() {
+        assert!(normalise_base("ftp://example.com").is_err());
+        assert!(normalise_base("https://").is_err());
     }
 
     #[test]

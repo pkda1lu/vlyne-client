@@ -1,6 +1,6 @@
 //! Vlyne — a sing-box based proxy client for Windows.
 
-mod account;
+pub mod account;
 mod clash;
 mod commands;
 mod core;
@@ -14,6 +14,7 @@ mod store;
 mod subs;
 mod sysproxy;
 mod tray;
+
 
 use std::sync::Arc;
 
