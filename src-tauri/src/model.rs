@@ -82,18 +82,26 @@ pub enum Transport {
         #[serde(default)]
         host: String,
     },
-    /// Xray's XHTTP / SplitHTTP. sing-box does not implement it, so such nodes
-    /// are kept but flagged unsupported and the UI explains why.
+    /// Xray's XHTTP, previously called SplitHTTP. The bundled core implements
+    /// it under the `xhttp` name only, so the older name is normalised away at
+    /// parse time.
     #[serde(rename_all = "camelCase")]
     Xhttp {
         #[serde(default)]
         path: String,
         #[serde(default)]
         host: String,
+        /// One of [`XHTTP_MODES`].
         #[serde(default)]
         mode: String,
+        #[serde(default)]
+        headers: std::collections::BTreeMap<String, String>,
     },
 }
+
+/// The upload modes the core accepts. Anything else makes it refuse the whole
+/// configuration, so a node carrying an unknown mode is held back instead.
+pub const XHTTP_MODES: [&str; 4] = ["auto", "packet-up", "stream-up", "stream-one"];
 
 impl Default for Transport {
     fn default() -> Self {
@@ -103,7 +111,14 @@ impl Default for Transport {
 
 impl Transport {
     pub fn is_supported(&self) -> bool {
-        !matches!(self, Transport::Xhttp { .. })
+        match self {
+            // An unknown mode is rejected by the core at load time, which would
+            // take every other node down with it.
+            Transport::Xhttp { mode, .. } => {
+                mode.is_empty() || XHTTP_MODES.contains(&mode.as_str())
+            }
+            _ => true,
+        }
     }
 }
 
@@ -294,7 +309,7 @@ impl Node {
     /// `Some(key)` when sing-box cannot dial this node. The key is a locale id.
     pub fn unsupported_reason(&self) -> Option<&'static str> {
         if !self.transport.is_supported() {
-            return Some("transport.xhttp");
+            return Some("transport.xhttpMode");
         }
         None
     }
@@ -746,4 +761,48 @@ pub struct Traffic {
     pub down: u64,
     pub total_up: u64,
     pub total_down: u64,
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    /// The frontend mirrors this shape by hand in `src/lib/types.ts`, so the
+    /// exact wire form is part of the contract rather than an implementation
+    /// detail.
+    #[test]
+    fn default_settings_serialise_the_way_the_ui_expects() {
+        let json = serde_json::to_value(Settings::default()).unwrap();
+
+        assert_eq!(json["mode"], serde_json::json!("systemProxy"));
+        assert_eq!(json["general"]["language"], serde_json::json!("ru"));
+        assert_eq!(json["routing"]["preset"], serde_json::json!("bypass-lan"));
+        assert_eq!(json["inbound"]["socksPort"], serde_json::json!(17080));
+        assert_eq!(json["probe"]["intervalS"], serde_json::json!(60));
+    }
+
+    #[test]
+    fn tunnel_mode_round_trips_through_json() {
+        for mode in [TunnelMode::SystemProxy, TunnelMode::Tun] {
+            let json = serde_json::to_string(&TunnelModeSetting(mode)).unwrap();
+            let back: TunnelModeSetting = serde_json::from_str(&json).unwrap();
+            assert_eq!(back.0, mode);
+        }
+        assert_eq!(
+            serde_json::to_string(&TunnelModeSetting::default()).unwrap(),
+            "\"systemProxy\""
+        );
+    }
+
+    /// A profile written by an older build must not reset the user's settings.
+    #[test]
+    fn a_partial_profile_fills_in_defaults() {
+        let data: AppData =
+            serde_json::from_str(r#"{"settings":{"general":{"language":"en"}}}"#).unwrap();
+
+        assert_eq!(data.settings.general.language, "en");
+        assert_eq!(data.settings.mode.0, TunnelMode::SystemProxy);
+        assert_eq!(data.settings.inbound.socks_port, 17080);
+        assert!(data.nodes.is_empty());
+    }
 }

@@ -28,6 +28,9 @@ export interface TlsOptions {
 
 export type TransportType = 'tcp' | 'ws' | 'grpc' | 'http' | 'httpUpgrade' | 'xhttp';
 
+/** XHTTP upload modes the core accepts. Mirrors `XHTTP_MODES` in `model.rs`. */
+export const XHTTP_MODES = ['auto', 'packet-up', 'stream-up', 'stream-one'] as const;
+
 export interface Transport {
   type: TransportType;
   path?: string;
@@ -35,6 +38,19 @@ export interface Transport {
   serviceName?: string;
   earlyData?: number;
   mode?: string;
+  headers?: Record<string, string>;
+}
+
+/**
+ * Whether the core can dial this node.
+ *
+ * The only thing it refuses outright is an XHTTP mode it does not know, which
+ * would make it reject the whole configuration rather than just this node.
+ */
+export function isNodeUsable(node: Node): boolean {
+  if (node.transport.type !== 'xhttp') return true;
+  const mode = node.transport.mode;
+  return !mode || (XHTTP_MODES as readonly string[]).includes(mode);
 }
 
 export interface Multiplex {

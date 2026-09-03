@@ -74,7 +74,7 @@ export const ru = {
     expiresIn: 'осталось дней: {days}',
     expired: 'истекла',
     usage: '{used} из {total}',
-    unsupported: 'Транспорт не поддерживается ядром',
+    unsupported: 'Неизвестный режим XHTTP — ядро не примет этот сервер',
     untested: '—',
   },
 
@@ -186,7 +186,7 @@ export const ru = {
     'core.notRunning': 'Ядро не запущено',
     'node.none': 'Сначала добавьте хотя бы один сервер',
     'node.notFound': 'Сервер не найден',
-    'node.unsupported': 'Ядро не умеет работать с этим транспортом',
+    'node.unsupported': 'У сервера неизвестный режим XHTTP',
     'tun.elevationRequired': 'Для TUN нужны права администратора',
     'port.inUse': 'Порт уже занят другой программой',
     'proxy.failed': 'Не удалось изменить настройки прокси Windows',

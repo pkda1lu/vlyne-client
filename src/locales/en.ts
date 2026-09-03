@@ -77,7 +77,7 @@ export const en: typeof ru = {
     expiresIn: '{days} days left',
     expired: 'expired',
     usage: '{used} of {total}',
-    unsupported: 'The core cannot dial this transport',
+    unsupported: 'Unknown XHTTP mode — the core will not accept this server',
     untested: '—',
   },
 
@@ -189,7 +189,7 @@ export const en: typeof ru = {
     'core.notRunning': 'The core is not running',
     'node.none': 'Add at least one server first',
     'node.notFound': 'Server not found',
-    'node.unsupported': 'The core cannot handle this transport',
+    'node.unsupported': 'This server uses an unknown XHTTP mode',
     'tun.elevationRequired': 'TUN mode needs administrator rights',
     'port.inUse': 'That port is already taken by another program',
     'proxy.failed': 'Could not change the Windows proxy settings',

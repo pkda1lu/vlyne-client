@@ -1,5 +1,6 @@
 /** Global UI state, kept in step with the backend through events. */
 
+import { useMemo } from 'react';
 import { create } from 'zustand';
 
 import { api, asIpcError, EVENT, on } from './ipc';
@@ -173,8 +174,9 @@ export const useStore = create<State>((set, get) => ({
 
 /** Nodes grouped by the subscription they came from. */
 export function useGroupedNodes() {
-  return useStore((s) => {
-    const data = s.data;
+  const data = useStore((s) => s.data);
+
+  return useMemo(() => {
     if (!data) return [];
 
     const groups = data.subscriptions.map((subscription) => ({
@@ -186,5 +188,5 @@ export function useGroupedNodes() {
     return manual.length > 0
       ? [...groups, { subscription: null, nodes: manual }]
       : groups;
-  });
+  }, [data]);
 }

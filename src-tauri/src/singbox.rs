@@ -213,8 +213,30 @@ fn transport_object(node: &Node) -> Option<Value> {
             }
             Some(Value::Object(o))
         }
-        // Rejected earlier by `Node::unsupported_reason`; never reached.
-        Transport::Xhttp { .. } => None,
+        Transport::Xhttp {
+            path,
+            host,
+            mode,
+            headers,
+        } => {
+            let mut o = Map::new();
+            o.insert("type".into(), json!("xhttp"));
+            o.insert(
+                "path".into(),
+                json!(if path.is_empty() { "/" } else { path }),
+            );
+            if !host.is_empty() {
+                o.insert("host".into(), json!(host));
+            }
+            // The core defaults to "auto"; sending an empty string is an error.
+            if !mode.is_empty() {
+                o.insert("mode".into(), json!(mode));
+            }
+            if !headers.is_empty() {
+                o.insert("headers".into(), json!(headers));
+            }
+            Some(Value::Object(o))
+        }
     }
 }
 
@@ -866,8 +888,32 @@ mod tests {
     }
 
     #[test]
-    fn xhttp_node_is_rejected_before_start() {
-        let node = parse_link("vless://uuid@a.com:443?type=xhttp&security=tls#N").unwrap();
+    fn xhttp_outbound_carries_path_host_and_mode() {
+        let node = parse_link(
+            "vless://uuid@a.com:443?type=xhttp&path=%2Fx&host=cdn.com&mode=stream-up&security=tls#N",
+        )
+        .unwrap();
+        let out = build_outbound(&node, &Settings::default(), "n").unwrap();
+
+        assert_eq!(out["transport"]["type"], json!("xhttp"));
+        assert_eq!(out["transport"]["path"], json!("/x"));
+        assert_eq!(out["transport"]["host"], json!("cdn.com"));
+        assert_eq!(out["transport"]["mode"], json!("stream-up"));
+    }
+
+    /// A mode the core does not know would make it reject the whole config, so
+    /// such a node has to be held back rather than emitted.
+    #[test]
+    fn an_invalid_xhttp_mode_marks_the_node_unusable() {
+        let mut node = parse_link("vless://uuid@a.com:443?type=xhttp&security=tls#N").unwrap();
+        node.transport = Transport::Xhttp {
+            path: "/x".into(),
+            host: String::new(),
+            mode: "made-up".into(),
+            headers: Default::default(),
+        };
+
+        assert_eq!(node.unsupported_reason(), Some("transport.xhttpMode"));
         let err = build_outbound(&node, &Settings::default(), "n").unwrap_err();
         assert_eq!(err.code(), "node.unsupported");
     }
@@ -875,7 +921,13 @@ mod tests {
     #[test]
     fn unsupported_nodes_are_dropped_not_fatal() {
         let good = parse_link("vless://uuid@a.com:443?security=tls#Good").unwrap();
-        let bad = parse_link("vless://uuid@b.com:443?type=xhttp&security=tls#Bad").unwrap();
+        let mut bad = parse_link("vless://uuid@b.com:443?security=tls#Bad").unwrap();
+        bad.transport = Transport::Xhttp {
+            path: "/x".into(),
+            host: String::new(),
+            mode: "made-up".into(),
+            headers: Default::default(),
+        };
         let (cfg, map) = generate(GenerateArgs {
             nodes: &[good.clone(), bad.clone()],
             active_id: Some(&good.id),

@@ -127,13 +127,38 @@ fn parse_transport(q: &HashMap<String, String>) -> Transport {
             method: get(q, "method").map(str::to_string),
         },
         "httpupgrade" => Transport::HttpUpgrade { path, host },
+        // "splithttp" is the old name for the same transport; the core only
+        // answers to "xhttp", so both collapse into one variant here.
         "xhttp" | "splithttp" => Transport::Xhttp {
             path,
             host,
-            mode: get(q, "mode").unwrap_or("auto").to_string(),
+            mode: normalise_xhttp_mode(get(q, "mode")),
+            // Xray carries an `extra` blob whose fields this core does not
+            // accept, so only real request headers are kept.
+            headers: Default::default(),
         },
         _ => Transport::Tcp,
     }
+}
+
+/// Map an XHTTP mode from a share link onto what the core understands.
+///
+/// Panels emit a few spellings for the same thing, and an unrecognised value
+/// would make the core reject the entire configuration rather than just this
+/// node, so anything unfamiliar falls back to "auto".
+fn normalise_xhttp_mode(raw: Option<&str>) -> String {
+    let Some(raw) = raw else {
+        return "auto".to_string();
+    };
+
+    let normalised = raw.trim().to_ascii_lowercase().replace('_', "-");
+    let mode = match normalised.as_str() {
+        "packet-up" | "packetup" => "packet-up",
+        "stream-up" | "streamup" => "stream-up",
+        "stream-one" | "streamone" => "stream-one",
+        _ => "auto",
+    };
+    mode.to_string()
 }
 
 fn split_early_data(path: &str) -> (String, Option<u32>) {
@@ -796,9 +821,44 @@ mod tests {
     }
 
     #[test]
-    fn xhttp_is_parsed_but_flagged() {
-        let node = parse_link("vless://uuid@h.com:443?type=xhttp&path=/x&security=tls#X").unwrap();
-        assert_eq!(node.unsupported_reason(), Some("transport.xhttp"));
+    fn xhttp_is_supported() {
+        let node =
+            parse_link("vless://uuid@h.com:443?type=xhttp&path=%2Fx&host=a.com&mode=packet-up&security=tls#X")
+                .unwrap();
+
+        assert_eq!(node.unsupported_reason(), None);
+        match node.transport {
+            Transport::Xhttp {
+                path, host, mode, ..
+            } => {
+                assert_eq!(path, "/x");
+                assert_eq!(host, "a.com");
+                assert_eq!(mode, "packet-up");
+            }
+            other => panic!("expected xhttp, got {other:?}"),
+        }
+    }
+
+    /// `splithttp` is the transport's former name and must land on the same
+    /// variant, since the core only answers to `xhttp`.
+    #[test]
+    fn splithttp_is_an_alias_for_xhttp() {
+        let node =
+            parse_link("vless://uuid@h.com:443?type=splithttp&path=%2Fs&security=tls#S").unwrap();
+        assert!(matches!(node.transport, Transport::Xhttp { .. }));
+        assert_eq!(node.unsupported_reason(), None);
+    }
+
+    #[test]
+    fn unknown_xhttp_modes_fall_back_to_auto() {
+        for (raw, expected) in [
+            (Some("stream_one"), "stream-one"),
+            (Some("PacketUp"), "packet-up"),
+            (Some("nonsense"), "auto"),
+            (None, "auto"),
+        ] {
+            assert_eq!(normalise_xhttp_mode(raw), expected, "input {raw:?}");
+        }
     }
 
     #[test]

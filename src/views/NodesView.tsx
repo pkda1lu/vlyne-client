@@ -25,6 +25,7 @@ import {
 } from '../lib/format';
 import { api } from '../lib/ipc';
 import { useGroupedNodes, useStore } from '../lib/store';
+import { isNodeUsable } from '../lib/types';
 import type { Node, Subscription } from '../lib/types';
 
 export function NodesView() {
@@ -302,7 +303,7 @@ function NodeRow({
   const toast = useStore((s) => s.toast);
   const toastError = useStore((s) => s.toastError);
 
-  const unsupported = node.transport.type === 'xhttp';
+  const unsupported = !isNodeUsable(node);
   const band = latencyBand(node.latencyMs);
   const region = guessRegion(node.name);
 
