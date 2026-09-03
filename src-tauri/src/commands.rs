@@ -78,7 +78,7 @@ pub async fn disconnect(state: App<'_>) -> Result<()> {
 
 #[tauri::command]
 pub async fn select_node(state: App<'_>, node_id: String) -> Result<()> {
-    state.select_node(&node_id).await
+    state.inner().select_node(&node_id).await
 }
 
 #[tauri::command]
@@ -373,7 +373,7 @@ pub fn account_info(state: App<'_>) -> crate::account::AccountInfo {
 /// Exchange a one-time code from the bot for a device token.
 #[tauri::command]
 pub async fn account_link(state: App<'_>, code: String) -> Result<crate::account::AccountInfo> {
-    let base = state.store.read(|d| d.account.base().to_string());
+    let base = state.store.read(|d| d.account.base());
     let device = format!("Vlyne {} / Windows", env!("CARGO_PKG_VERSION"));
 
     let linked = crate::account::pair(&base, code.trim(), &device, shop_detour(&state)).await?;
@@ -421,7 +421,7 @@ pub async fn account_set_api_base(state: App<'_>, base: String) -> Result<String
 
     // Hand back what was actually stored, so the field shows the address that
     // will be used rather than whatever was typed.
-    Ok(state.store.read(|d| d.account.base().to_string()))
+    Ok(state.store.read(|d| d.account.base()))
 }
 
 /// Quota, packs and referral programme, passed through from the service.

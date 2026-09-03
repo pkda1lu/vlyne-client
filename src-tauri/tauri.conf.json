@@ -23,13 +23,7 @@
         "transparent": false,
         "shadow": true,
         "center": true,
-        "backgroundColor": "#08090d",
-        "windowEffects": {
-          "effects": [
-            "mica"
-          ],
-          "state": "followsWindowActiveState"
-        }
+        "backgroundColor": "#0a0a0a"
       }
     ],
     "security": {

@@ -410,7 +410,7 @@ impl AppState {
 
     /// Switch the active node. While connected this is a selector call, so the
     /// tunnel never drops and existing connections migrate.
-    pub async fn select_node(&self, node_id: &str) -> Result<()> {
+    pub async fn select_node(self: &Arc<Self>, node_id: &str) -> Result<()> {
         let exists = self.store.read(|d| d.nodes.iter().any(|n| n.id == node_id));
         if !exists {
             return Err(Error::NodeNotFound(node_id.to_string()));
@@ -418,17 +418,33 @@ impl AppState {
 
         self.store.write(|d| d.active_node_id = Some(node_id.to_string()))?;
 
-        let target = {
+        let session = {
             let session = self.session.lock();
-            session.as_ref().and_then(|s| {
-                s.tags
-                    .tag_of(node_id)
-                    .map(|tag| (s.clash.clone(), tag.to_string()))
+            session.as_ref().map(|s| {
+                (
+                    s.clash.clone(),
+                    s.tags.tag_of(node_id).map(str::to_string),
+                )
             })
         };
 
-        if let Some((clash, tag)) = target {
-            clash.select(TAG_PROXY, &tag).await?;
+        match session {
+            // The usual case: the node is already an outbound, so switching is
+            // one call and open connections migrate to it.
+            Some((clash, Some(tag))) => clash.select(TAG_PROXY, &tag).await?,
+
+            // The node was added after the core started, so it is absent from
+            // the running configuration. Picking it has to take effect now,
+            // not at some later reconnect, or the tunnel would quietly carry
+            // on using the previous server.
+            Some((_, None)) => {
+                tracing::info!("reloading the core to reach a newly added server");
+                self.disconnect().await?;
+                self.connect(Some(node_id.to_string())).await?;
+                return Ok(());
+            }
+
+            None => {}
         }
 
         let name = self.store.read(|d| {

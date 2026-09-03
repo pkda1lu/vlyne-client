@@ -1,70 +1,80 @@
 /* ==========================================================================
-   Vlyne design system — glass and depth.
+   Vlyne design system — newsprint and blood.
 
-   The window is Mica-backed and undecorated, so the app paints translucent
-   layers over the desktop rather than a flat panel. Every surface is a step in
-   one elevation scale; nothing invents its own colour.
+   The same language as the Telegram mini app: ink ground under a halftone
+   screen, paper-white type, and one blood red reserved for anything that acts.
+   Nothing is rounded and every edge is a hard 2px rule; the shape carries as
+   much of the identity as the colour does.
    ========================================================================== */
 
 :root {
+  /* The palette of the Telegram mini app, so the two halves of the product
+     read as one thing: newsprint on ink, with blood for anything that acts. */
+
   /* Ground ------------------------------------------------------------- */
-  --bg: #08090d;
-  --bg-veil: rgba(8, 9, 13, 0.72);
+  --bg: #0a0a0a;
+  --bg-veil: rgba(10, 10, 10, 0.86);
 
-  /* Elevation: each layer is a brighter film of white over the ground. */
-  --layer-1: rgba(255, 255, 255, 0.032);
-  --layer-2: rgba(255, 255, 255, 0.055);
-  --layer-3: rgba(255, 255, 255, 0.085);
-  --layer-hover: rgba(255, 255, 255, 0.07);
+  /* Panels are flat shades of ink, not films of light. */
+  --layer-1: #121212;
+  --layer-2: #161616;
+  --layer-3: #1f1f1f;
+  --layer-hover: #232323;
 
-  --edge: rgba(255, 255, 255, 0.09);
-  --edge-strong: rgba(255, 255, 255, 0.16);
+  --edge: #2b2b2b;
+  --edge-strong: #f4f2ee;
 
   /* Ink ---------------------------------------------------------------- */
-  --ink: rgba(255, 255, 255, 0.95);
-  --ink-2: rgba(255, 255, 255, 0.66);
-  --ink-3: rgba(255, 255, 255, 0.42);
-  --ink-4: rgba(255, 255, 255, 0.26);
+  --ink: #f4f2ee;
+  --ink-2: #d6d2cd;
+  --ink-3: #a9a5a0;
+  --ink-4: #6f6b66;
 
-  /* Accent: indigo through cyan, echoing the orbit in the logo. */
-  --accent: #7c5cff;
-  --accent-2: #22d3ee;
-  --accent-soft: rgba(124, 92, 255, 0.16);
-  --accent-line: rgba(124, 92, 255, 0.45);
-  --accent-gradient: linear-gradient(135deg, #7c5cff 0%, #22d3ee 100%);
+  /* Accent -------------------------------------------------------------- */
+  --accent: #c8102e;
+  --accent-2: #e11d34;
+  --accent-soft: rgba(200, 16, 46, 0.18);
+  --accent-line: #c8102e;
+  --accent-gradient: linear-gradient(90deg, #c8102e, #e11d34);
 
-  /* State -------------------------------------------------------------- */
-  --ok: #34d399;
-  --ok-soft: rgba(52, 211, 153, 0.14);
-  --warn: #fbbf24;
-  --warn-soft: rgba(251, 191, 36, 0.14);
-  --bad: #f87171;
-  --bad-soft: rgba(248, 113, 113, 0.14);
+  /* State: paper reads as good here, so green would be the odd one out. */
+  --ok: #f4f2ee;
+  --ok-soft: rgba(244, 242, 238, 0.12);
+  --warn: #d98324;
+  --warn-soft: rgba(217, 131, 36, 0.16);
+  --bad: #c8102e;
+  --bad-soft: rgba(200, 16, 46, 0.16);
 
-  /* Form --------------------------------------------------------------- */
-  --radius-sm: 8px;
-  --radius: 12px;
-  --radius-lg: 18px;
-  --radius-xl: 26px;
+  /* Form: nothing is rounded. The shape is part of the language. */
+  --radius-sm: 0px;
+  --radius: 0px;
+  --radius-lg: 0px;
+  --radius-xl: 0px;
 
-  --shadow-1: 0 1px 2px rgba(0, 0, 0, 0.3);
-  --shadow-2: 0 8px 24px rgba(0, 0, 0, 0.36);
-  --shadow-3: 0 24px 64px rgba(0, 0, 0, 0.5);
+  --shadow-1: none;
+  --shadow-2: none;
+  --shadow-3: none;
 
   --titlebar-h: 40px;
   --sidebar-w: 232px;
 
-  /* Motion: one easing curve, three durations. */
   --ease: cubic-bezier(0.22, 0.61, 0.36, 1);
-  --fast: 120ms;
-  --normal: 220ms;
-  --slow: 420ms;
+  --fast: 100ms;
+  --normal: 180ms;
+  --slow: 360ms;
 
-  --font: 'Segoe UI Variable Display', 'Segoe UI', system-ui, -apple-system, sans-serif;
+  /* Anton carries no Cyrillic, so it is kept for the wordmark and figures
+     and Oswald 600 does the headings. A system fallback for Russian would
+     land on whatever Impact-alike the machine has, which is nobody's idea
+     of a design. */
+  --font: 'Oswald', 'Segoe UI', system-ui, -apple-system, sans-serif;
+  --display: 'Anton', 'Oswald', Impact, sans-serif;
+  --heading: 'Oswald', 'Segoe UI', system-ui, sans-serif;
   --mono: 'Cascadia Mono', 'Consolas', ui-monospace, monospace;
 
   color-scheme: dark;
 }
+
 
 /* Reset -------------------------------------------------------------------- */
 
@@ -84,13 +94,24 @@ body,
 body {
   font-family: var(--font);
   font-size: 14px;
+  font-weight: 400;
   line-height: 1.5;
   color: var(--ink);
-  /* Transparent so the window's Mica backdrop shows through. */
-  background: transparent;
+  background: var(--bg);
   overflow: hidden;
   user-select: none;
   -webkit-font-smoothing: antialiased;
+}
+
+/* The halftone screen. Fixed and inert, so it never scrolls or catches a click. */
+body::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  background-image: radial-gradient(rgba(255, 255, 255, 0.055) 1px, transparent 1px);
+  background-size: 5px 5px;
 }
 
 button,
@@ -127,14 +148,13 @@ p {
 }
 
 ::-webkit-scrollbar-thumb {
-  background: rgba(255, 255, 255, 0.12);
+  background: var(--edge);
   border: 3px solid transparent;
   background-clip: content-box;
-  border-radius: 99px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: rgba(255, 255, 255, 0.22);
+  background: var(--ink-4);
   background-clip: content-box;
 }
 
@@ -152,8 +172,8 @@ p {
     'titlebar titlebar'
     'sidebar  main';
   height: 100%;
-  background: var(--bg-veil);
-  backdrop-filter: blur(30px) saturate(150%);
+  position: relative;
+  z-index: 1;
 }
 
 /* Title bar ---------------------------------------------------------------- */
@@ -164,7 +184,7 @@ p {
   align-items: center;
   gap: 10px;
   padding-left: 14px;
-  border-bottom: 1px solid var(--edge);
+  border-bottom: 2px solid var(--edge);
 }
 
 .titlebar__drag {
@@ -178,17 +198,18 @@ p {
   app-region: drag;
 }
 
+/* A blood block rather than a badge: the same mark the mini app stamps
+   beside every heading. */
 .titlebar__mark {
-  width: 18px;
+  width: 6px;
   height: 18px;
-  border-radius: 50%;
-  background: var(--accent-gradient);
-  box-shadow: 0 0 14px rgba(124, 92, 255, 0.5);
+  background: var(--accent);
 }
 
 .titlebar__title {
-  font-size: 12.5px;
-  font-weight: 600;
+  font-family: var(--display);
+  font-size: 14px;
+  font-weight: 400;
   letter-spacing: 0.08em;
   text-transform: uppercase;
   color: var(--ink-3);
@@ -226,18 +247,20 @@ p {
   display: flex;
   flex-direction: column;
   padding: 12px 10px;
-  gap: 4px;
-  border-right: 1px solid var(--edge);
+  gap: 2px;
+  border-right: 2px solid var(--edge);
 }
 
 .nav-item {
   display: flex;
   align-items: center;
   gap: 11px;
-  padding: 9px 12px;
-  border-radius: var(--radius);
-  color: var(--ink-2);
+  padding: 10px 12px;
+  color: var(--ink-3);
   font-weight: 500;
+  font-size: 13px;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
   text-align: left;
   position: relative;
   transition: background var(--fast) var(--ease), color var(--fast) var(--ease);
@@ -253,17 +276,15 @@ p {
   color: var(--ink);
 }
 
-/* The active marker is the one place a gradient rail appears in navigation. */
+/* A blood rule down the left edge marks the open section. */
 .nav-item--active::before {
   content: '';
   position: absolute;
   left: 0;
-  top: 50%;
-  translate: -4px -50%;
-  width: 3px;
-  height: 18px;
-  border-radius: 99px;
-  background: var(--accent-gradient);
+  top: 0;
+  bottom: 0;
+  width: 4px;
+  background: var(--accent);
 }
 
 .nav-item__badge {
@@ -300,9 +321,12 @@ p {
 }
 
 .view-title {
-  font-size: 21px;
-  font-weight: 650;
-  letter-spacing: -0.01em;
+  font-family: var(--heading);
+  font-size: 26px;
+  font-weight: 600;
+  line-height: 1.05;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
 }
 
 .view-subtitle {
@@ -314,10 +338,9 @@ p {
 /* Surfaces ----------------------------------------------------------------- */
 
 .card {
-  background: var(--layer-1);
-  border: 1px solid var(--edge);
-  border-radius: var(--radius-lg);
-  padding: 18px;
+  background: var(--layer-2);
+  border: 2px solid var(--edge);
+  padding: 16px;
 }
 
 .card--raised {
@@ -326,12 +349,25 @@ p {
 }
 
 .card__title {
-  font-size: 12px;
+  font-family: var(--heading);
+  font-size: 15px;
   font-weight: 600;
-  letter-spacing: 0.06em;
+  letter-spacing: 0.04em;
   text-transform: uppercase;
-  color: var(--ink-3);
+  color: var(--ink);
   margin-bottom: 12px;
+  display: flex;
+  align-items: center;
+  gap: 9px;
+}
+
+/* Every heading carries the same blood tick as the mini app's. */
+.card__title::before {
+  content: '';
+  width: 5px;
+  height: 16px;
+  background: var(--accent);
+  flex: none;
 }
 
 /* Buttons ------------------------------------------------------------------ */
@@ -340,14 +376,16 @@ p {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  gap: 7px;
-  padding: 8px 15px;
-  border-radius: var(--radius);
-  background: var(--layer-2);
-  border: 1px solid var(--edge);
+  gap: 8px;
+  padding: 10px 16px;
+  background: transparent;
+  border: 2px solid var(--edge);
   color: var(--ink);
-  font-weight: 550;
+  font-family: var(--heading);
+  font-weight: 600;
   font-size: 13px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
   white-space: nowrap;
   transition: background var(--fast) var(--ease), border-color var(--fast) var(--ease),
     transform var(--fast) var(--ease);
@@ -367,14 +405,16 @@ p {
   cursor: not-allowed;
 }
 
+/* Blood, filled: the one control on a screen that commits to something. */
 .btn--primary {
-  background: var(--accent-soft);
-  border-color: var(--accent-line);
-  color: #cdc2ff;
+  background: var(--accent);
+  border-color: var(--accent);
+  color: #fff;
 }
 
 .btn--primary:hover:not(:disabled) {
-  background: rgba(124, 92, 255, 0.26);
+  background: var(--accent-2);
+  border-color: var(--accent-2);
 }
 
 .btn--ghost {
@@ -494,33 +534,44 @@ p {
   min-width: 0;
 }
 
+/* Squared off like everything else, but still unmistakably a switch: a block
+   that travels a track, not a box that changes colour. */
 .switch__track {
   flex: none;
-  width: 40px;
-  height: 22px;
-  border-radius: 99px;
-  background: rgba(255, 255, 255, 0.13);
-  border: 1px solid var(--edge);
-  padding: 2px;
-  transition: background var(--normal) var(--ease);
+  display: flex;
+  align-items: center;
+  width: 46px;
+  height: 24px;
+  background: #000;
+  border: 2px solid var(--edge);
+  padding: 3px;
+  transition: background var(--normal) var(--ease),
+    border-color var(--normal) var(--ease);
 }
 
 .switch__thumb {
-  width: 16px;
-  height: 16px;
-  border-radius: 50%;
-  background: var(--ink-2);
+  width: 14px;
+  height: 14px;
+  background: var(--ink-4);
   transition: translate var(--normal) var(--ease), background var(--normal) var(--ease);
 }
 
 .switch--on .switch__track {
   background: var(--accent);
-  border-color: transparent;
+  border-color: var(--accent);
 }
 
 .switch--on .switch__thumb {
-  translate: 18px 0;
+  translate: 22px 0;
   background: #fff;
+}
+
+.switch:hover .switch__track {
+  border-color: var(--ink-4);
+}
+
+.switch--on:hover .switch__track {
+  border-color: var(--accent-2);
 }
 
 /* Segmented control -------------------------------------------------------- */
@@ -600,23 +651,23 @@ p {
 
 .orb--connecting .orb__ring--inner {
   animation: orbit 2.1s linear infinite reverse;
-  border-color: rgba(34, 211, 238, 0.5);
+  border-color: var(--accent-2);
 }
 
+/* Connected is paper: the tunnel is up, and blood is saved for what needs
+   attention. */
 .orb--connected .orb__ring--inner {
-  border-color: rgba(52, 211, 153, 0.55);
-  box-shadow: 0 0 34px rgba(52, 211, 153, 0.22), inset 0 0 34px rgba(52, 211, 153, 0.09);
+  border-color: var(--ink);
 }
 
 .orb--connected .orb__ring--outer {
-  border-color: rgba(52, 211, 153, 0.24);
-  opacity: 0.8;
+  border-color: var(--ink-4);
+  opacity: 0.9;
   animation: breathe 5s var(--ease) infinite;
 }
 
 .orb--failed .orb__ring--inner {
-  border-color: rgba(248, 113, 113, 0.55);
-  box-shadow: 0 0 30px rgba(248, 113, 113, 0.2);
+  border-color: var(--accent);
 }
 
 .orb__core {
@@ -625,10 +676,9 @@ p {
   border-radius: 50%;
   display: grid;
   place-items: center;
-  background: var(--layer-2);
-  border: 1px solid var(--edge-strong);
+  background: #000;
+  border: 2px solid var(--edge-strong);
   color: var(--ink-2);
-  box-shadow: var(--shadow-2);
   transition: background var(--normal) var(--ease), color var(--normal) var(--ease),
     box-shadow var(--normal) var(--ease);
 }
@@ -638,21 +688,29 @@ p {
   color: var(--ink);
 }
 
+/* Up: the paper fills in and the mark reverses out of it. */
 .orb--connected .orb__core {
-  background: linear-gradient(160deg, rgba(52, 211, 153, 0.22), rgba(34, 211, 238, 0.12));
-  color: #6ee7b7;
-  border-color: rgba(52, 211, 153, 0.4);
+  background: var(--ink);
+  color: #000;
+  border-color: var(--ink);
 }
 
 .orb--connecting .orb__core {
-  background: linear-gradient(160deg, rgba(124, 92, 255, 0.24), rgba(34, 211, 238, 0.12));
-  color: #c4b5fd;
+  border-color: var(--accent);
+  color: var(--ink);
+}
+
+.orb--failed .orb__core {
+  border-color: var(--accent);
+  color: var(--accent);
 }
 
 .connect__state {
-  font-size: 17px;
+  font-family: var(--heading);
+  font-size: 22px;
   font-weight: 600;
-  letter-spacing: -0.01em;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
 }
 
 .connect__detail {
@@ -836,52 +894,58 @@ p {
   display: inline-flex;
   align-items: center;
   gap: 5px;
-  padding: 2px 8px;
-  border-radius: 99px;
-  font-size: 11px;
-  font-weight: 550;
-  background: var(--layer-2);
-  color: var(--ink-2);
+  padding: 3px 8px;
+  font-size: 10.5px;
+  font-weight: 500;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  background: transparent;
+  border: 2px solid var(--edge);
+  color: var(--ink-3);
 }
 
+/* State is carried by the rule around the chip, the way the mini app tags
+   its nodes, rather than by a tinted fill. */
 .chip--ok {
-  background: var(--ok-soft);
-  color: var(--ok);
+  border-color: var(--ink);
+  color: var(--ink);
 }
 
 .chip--warn {
-  background: var(--warn-soft);
+  border-color: var(--warn);
   color: var(--warn);
 }
 
 .chip--bad {
-  background: var(--bad-soft);
+  border-color: var(--bad);
   color: var(--bad);
 }
 
 .chip--accent {
-  background: var(--accent-soft);
-  color: #c4b5fd;
+  border-color: var(--accent);
+  color: var(--accent);
 }
 
 /* Usage meter -------------------------------------------------------------- */
 
+/* The mini app's bar: black behind a paper rule, filled in blood. */
 .meter {
-  height: 5px;
-  border-radius: 99px;
-  background: rgba(255, 255, 255, 0.1);
+  display: block;
+  height: 16px;
+  background: #000;
+  border: 2px solid var(--ink);
   overflow: hidden;
 }
 
 .meter__fill {
+  display: block;
   height: 100%;
-  border-radius: 99px;
-  background: var(--accent-gradient);
+  background: var(--accent);
   transition: width var(--slow) var(--ease);
 }
 
 .meter__fill--warn {
-  background: linear-gradient(90deg, #fbbf24, #f87171);
+  background: var(--warn);
 }
 
 /* Modal -------------------------------------------------------------------- */

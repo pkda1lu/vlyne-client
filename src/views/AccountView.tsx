@@ -1,7 +1,9 @@
 import { writeText } from '@tauri-apps/plugin-clipboard-manager';
 import { openUrl } from '@tauri-apps/plugin-opener';
 import {
+  Copy,
   CreditCard,
+  Download,
   ExternalLink,
   Gift,
   LogOut,
@@ -174,7 +176,33 @@ function LinkPanel({ onLinked }: { onLinked: () => void }) {
 function QuotaCard({ shop }: { shop: ShopState }) {
   const { t } = useI18n();
   const toast = useStore((s) => s.toast);
+  const toastError = useStore((s) => s.toastError);
+  const data = useStore((s) => s.data);
   const sub = shop.subscription;
+
+  const [busy, setBusy] = useState(false);
+  // Matched on the URL rather than a stored id, so the same plan added by hand
+  // earlier is recognised instead of duplicated.
+  const alreadyAdded = data?.subscriptions.find((s) => s.url === sub.url) ?? null;
+
+  /** Put the account's own servers into the client, without copy and paste. */
+  const useSubscription = async () => {
+    if (!sub.url) return;
+    setBusy(true);
+    try {
+      if (alreadyAdded) {
+        const count = await api.refreshSubscription(alreadyAdded.id);
+        toast('success', t('nodes.refreshed', { count }));
+      } else {
+        await api.addSubscription(sub.url, 'Vlyne VPN');
+        toast('success', t('account.subscriptionUsed'));
+      }
+    } catch (error) {
+      toastError(error);
+    } finally {
+      setBusy(false);
+    }
+  };
   const ratio = sub.unlimited ? 0 : Math.min(100, sub.percent) / 100;
   const tone = ratio > 0.9 ? 'bad' : ratio > 0.75 ? 'warn' : 'ok';
 
@@ -209,18 +237,27 @@ function QuotaCard({ shop }: { shop: ShopState }) {
       </div>
 
       {sub.url && (
-        <div className="row" style={{ marginTop: 12 }}>
-          <button
-            className="btn btn--sm"
-            onClick={async () => {
-              await writeText(sub.url!);
-              toast('success', t('nodes.copied'));
-            }}
-          >
-            {t('account.copySubscription')}
-          </button>
-          <span className="field__hint">{t('account.subscriptionHint')}</span>
-        </div>
+        <>
+          <div className="row" style={{ marginTop: 14 }}>
+            <button className="btn btn--primary" onClick={useSubscription} disabled={busy}>
+              <Download size={15} />
+              {alreadyAdded ? t('account.refreshServers') : t('account.useSubscription')}
+            </button>
+            <button
+              className="btn btn--primary"
+              onClick={async () => {
+                await writeText(sub.url!);
+                toast('success', t('nodes.copied'));
+              }}
+            >
+              <Copy size={15} />
+              {t('account.copySubscription')}
+            </button>
+          </div>
+          <span className="field__hint" style={{ display: 'block', marginTop: 8 }}>
+            {alreadyAdded ? t('account.subscriptionHint') : t('account.useSubscriptionHint')}
+          </span>
+        </>
       )}
     </Card>
   );

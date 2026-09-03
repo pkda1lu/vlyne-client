@@ -47,12 +47,24 @@ impl Account {
         self.token.as_deref().is_some_and(|t| !t.is_empty())
     }
 
-    pub fn base(&self) -> &str {
-        let trimmed = self.api_base.trim().trim_end_matches('/');
+    /// The address actually used, which is never one we would refuse to store.
+    ///
+    /// Validation on write is not enough: a profile can carry an address from
+    /// an older build, or from someone editing the file. Falling back here
+    /// means a bad value costs nothing and fixes itself, instead of leaving
+    /// the shop permanently broken with no way out but editing JSON.
+    pub fn base(&self) -> String {
+        let trimmed = self.api_base.trim();
         if trimmed.is_empty() {
-            DEFAULT_API_BASE
-        } else {
-            trimmed
+            return DEFAULT_API_BASE.to_string();
+        }
+
+        match normalise_base(trimmed) {
+            Ok(base) if !base.is_empty() => base,
+            _ => {
+                tracing::warn!("ignoring the stored service address {trimmed}");
+                DEFAULT_API_BASE.to_string()
+            }
         }
     }
 }
@@ -126,7 +138,7 @@ impl From<&Account> for AccountInfo {
             linked: a.is_linked(),
             user_id: a.user_id,
             linked_at: a.linked_at,
-            api_base: a.base().to_string(),
+            api_base: a.base(),
         }
     }
 }
@@ -334,7 +346,7 @@ async fn authorised(
     via_proxy: Option<u16>,
 ) -> Result<Value> {
     let token = account.token.as_deref().ok_or(Error::AccountUnlinked)?;
-    post(account.base(), path, Some(token), body, via_proxy).await
+    post(&account.base(), path, Some(token), body, via_proxy).await
 }
 
 #[cfg(test)]
@@ -381,6 +393,25 @@ mod tests {
     fn nonsense_is_reported_rather_than_stored() {
         assert!(normalise_base("ftp://example.com").is_err());
         assert!(normalise_base("https://").is_err());
+    }
+
+    /// A profile carrying an address we would refuse must not be used either.
+    #[test]
+    fn a_stored_plaintext_address_falls_back_to_the_default() {
+        let account = Account {
+            api_base: "http://vlessconf.ru:8444".into(),
+            ..Account::default()
+        };
+        assert_eq!(account.base(), DEFAULT_API_BASE);
+    }
+
+    #[test]
+    fn a_stored_loopback_address_is_kept() {
+        let account = Account {
+            api_base: "http://127.0.0.1:8099".into(),
+            ..Account::default()
+        };
+        assert_eq!(account.base(), "http://127.0.0.1:8099");
     }
 
     #[test]
