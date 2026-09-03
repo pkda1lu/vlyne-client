@@ -28,3 +28,4 @@ src-tauri/resources/*
 
 # Build transcripts
 build.log
+tsconfig.tsbuildinfo
