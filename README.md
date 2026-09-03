@@ -6,11 +6,11 @@
 
 ---
 
-## Что нового в 3.0
+## Что нового в 1.0
 
-Версия 3.0 — полная переработка. Приложение больше не использует Electron и Xray.
+Версия 1.0 — полная переработка. Приложение больше не использует Electron и Xray.
 
-| | 2.x | 3.0 |
+| | 1.x | 1.0 |
 |---|---|---|
 | Оболочка | Electron | Tauri 2 (системный WebView2) |
 | Ядро | Xray 25.12 | sing-box 1.14 |
@@ -125,13 +125,24 @@ scripts/
 
 ### Подпись обновлений
 
-Приватный ключ лежит вне репозитория, публичный — в `src-tauri/tauri.conf.json`. Для сборки с подписью:
+Публичный ключ лежит в `src-tauri/tauri.conf.json`. Приватный ключ и пароль к нему — вне репозитория:
 
-```bash
-TAURI_SIGNING_PRIVATE_KEY_PATH=~/.tauri/vlyne-updater.key npm run app:build
+* `~/.tauri/vlyne-updater.key`
+* `~/.tauri/vlyne-updater.password`
+
+Собирать нужно из PowerShell: линковщик MSVC не запускается из Git Bash.
+
+```powershell
+$env:TAURI_SIGNING_PRIVATE_KEY = "$env:USERPROFILE\.taurilyne-updater.key"
+$env:TAURI_SIGNING_PRIVATE_KEY_PASSWORD = (Get-Content "$env:USERPROFILE\.taurilyne-updater.password" -Raw)
+npm run app:build
 ```
 
-Потеря приватного ключа означает, что обновления перестанут устанавливаться у всех, кто уже поставил приложение.
+Ключ защищён паролем намеренно. Пустой пароль тут не работает: PowerShell и .NET удаляют переменную окружения при присваивании пустой строки, и сборка молча зависает на запросе пароля.
+
+Для GitHub Actions положите содержимое обоих файлов в секреты `TAURI_SIGNING_PRIVATE_KEY` и `TAURI_SIGNING_PRIVATE_KEY_PASSWORD`.
+
+Потеря приватного ключа или пароля означает, что обновления перестанут устанавливаться у всех, кто уже поставил приложение: сменить ключ можно только новым установщиком.
 
 ---
 
