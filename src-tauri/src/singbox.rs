@@ -1110,6 +1110,310 @@ mod tests {
         assert!(cfg["inbounds"].as_array().unwrap().len() >= 2);
     }
 
+    // -----------------------------------------------------------------------
+    // Every control in Routing has to reach the generated configuration. A
+    // switch that changes nothing is worse than no switch at all, so each one
+    // is pinned here to the rule it is supposed to produce.
+    // -----------------------------------------------------------------------
+
+    fn rules_of(cfg: &Value) -> Vec<Value> {
+        cfg["route"]["rules"].as_array().cloned().unwrap_or_default()
+    }
+
+    fn has_rule(cfg: &Value, f: impl Fn(&Value) -> bool) -> bool {
+        rules_of(cfg).iter().any(f)
+    }
+
+    fn rule_set_tags(cfg: &Value) -> Vec<String> {
+        cfg["route"]["rule_set"]
+            .as_array()
+            .map(|sets| {
+                sets.iter()
+                    .filter_map(|s| s["tag"].as_str().map(str::to_string))
+                    .collect()
+            })
+            .unwrap_or_default()
+    }
+
+    fn with_settings(mutate: impl FnOnce(&mut Settings)) -> Value {
+        let mut settings = Settings::default();
+        mutate(&mut settings);
+        generate_for("vless://uuid@a.com:443?security=tls#N", &settings)
+    }
+
+    fn one_rule(kind: RuleKind, value: &str, target: RuleTarget) -> crate::model::RoutingRule {
+        crate::model::RoutingRule {
+            id: "1".into(),
+            kind,
+            value: value.into(),
+            target,
+            enabled: true,
+        }
+    }
+
+    #[test]
+    fn each_routing_preset_produces_its_own_rules() {
+        let private_direct =
+            |r: &Value| r["ip_is_private"] == json!(true) && r["outbound"] == json!(TAG_DIRECT);
+
+        let global = with_settings(|s| s.routing.preset = RoutingPreset::Global);
+        assert!(!has_rule(&global, private_direct), "global must tunnel everything");
+
+        let lan = with_settings(|s| s.routing.preset = RoutingPreset::BypassLan);
+        assert!(has_rule(&lan, private_direct), "bypass-lan must spare private addresses");
+        assert!(rule_set_tags(&lan).is_empty(), "bypass-lan needs no geo data");
+
+        let ru = with_settings(|s| s.routing.preset = RoutingPreset::BypassRu);
+        assert!(has_rule(&ru, private_direct));
+        let tags = rule_set_tags(&ru);
+        assert!(tags.contains(&"geoip-ru".to_string()), "{tags:?}");
+        assert!(tags.contains(&"geosite-category-ru".to_string()), "{tags:?}");
+
+        let custom = with_settings(|s| s.routing.preset = RoutingPreset::Custom);
+        assert!(!has_rule(&custom, private_direct), "custom defers to the user");
+        assert!(rule_set_tags(&custom).is_empty());
+    }
+
+    #[test]
+    fn blocking_ads_adds_a_reject_rule_and_nothing_else_does() {
+        let ads = |cfg: &Value| {
+            has_rule(cfg, |r| {
+                r["action"] == json!("reject")
+                    && r["rule_set"] == json!(["geosite-category-ads-all"])
+            })
+        };
+
+        assert!(!ads(&with_settings(|s| s.routing.block_ads = false)));
+        let on = with_settings(|s| s.routing.block_ads = true);
+        assert!(ads(&on));
+        assert!(rule_set_tags(&on).contains(&"geosite-category-ads-all".to_string()));
+    }
+
+    /// QUIC is worth rejecting only where the system proxy cannot see it. In
+    /// TUN the tunnel carries it, and blocking it there would break sites.
+    #[test]
+    fn quic_is_blocked_only_where_it_would_escape() {
+        let quic = |cfg: &Value| {
+            has_rule(cfg, |r| {
+                r["protocol"] == json!("quic") && r["action"] == json!("reject")
+            })
+        };
+
+        assert!(quic(&with_settings(|s| s.routing.block_quic_for_direct = true)));
+        assert!(!quic(&with_settings(|s| s.routing.block_quic_for_direct = false)));
+        assert!(!quic(&with_settings(|s| {
+            s.routing.block_quic_for_direct = true;
+            s.mode.0 = TunnelMode::Tun;
+        })));
+    }
+
+    #[test]
+    fn every_rule_kind_reaches_the_configuration() {
+        let cases = [
+            (RuleKind::Domain, "example.com", "domain"),
+            (RuleKind::DomainSuffix, "example.com", "domain_suffix"),
+            (RuleKind::DomainKeyword, "ads", "domain_keyword"),
+            (RuleKind::DomainRegex, "^ad.*", "domain_regex"),
+            (RuleKind::IpCidr, "10.0.0.0/8", "ip_cidr"),
+            (RuleKind::Port, "8080", "port"),
+            (RuleKind::ProcessName, "steam.exe", "process_name"),
+        ];
+
+        for (kind, value, field) in cases {
+            let cfg = with_settings(|s| {
+                s.routing.rules = vec![one_rule(kind, value, RuleTarget::Direct)];
+            });
+            assert!(
+                has_rule(&cfg, |r| !r[field].is_null() && r["outbound"] == json!(TAG_DIRECT)),
+                "{kind:?} produced no {field} rule"
+            );
+        }
+    }
+
+    #[test]
+    fn a_rule_target_decides_where_the_traffic_goes() {
+        let for_target = |target| {
+            with_settings(move |s| {
+                s.routing.rules = vec![one_rule(RuleKind::DomainSuffix, "example.com", target)];
+            })
+        };
+        let mine = |r: &Value| r["domain_suffix"] == json!(["example.com"]);
+
+        assert!(has_rule(&for_target(RuleTarget::Proxy), |r| mine(r)
+            && r["outbound"] == json!(TAG_PROXY)));
+        assert!(has_rule(&for_target(RuleTarget::Direct), |r| mine(r)
+            && r["outbound"] == json!(TAG_DIRECT)));
+        assert!(has_rule(&for_target(RuleTarget::Block), |r| mine(r)
+            && r["action"] == json!("reject")));
+    }
+
+    #[test]
+    fn a_disabled_rule_is_left_out() {
+        let cfg = with_settings(|s| {
+            let mut rule = one_rule(RuleKind::DomainSuffix, "example.com", RuleTarget::Block);
+            rule.enabled = false;
+            s.routing.rules = vec![rule];
+        });
+        assert!(!has_rule(&cfg, |r| r["domain_suffix"] == json!(["example.com"])));
+    }
+
+    /// A rule with nothing in it would either match everything or fail to load.
+    ///
+    /// The assertion looks for the rule's own field rather than for any reject
+    /// at all: QUIC is rejected by default, and matching on that would pass
+    /// whatever the empty rule did.
+    #[test]
+    fn an_empty_rule_value_is_ignored() {
+        let cfg = with_settings(|s| {
+            s.routing.rules = vec![one_rule(RuleKind::DomainSuffix, "   ", RuleTarget::Block)];
+        });
+        assert!(!has_rule(&cfg, |r| !r["domain_suffix"].is_null()));
+    }
+
+    #[test]
+    fn user_rules_outrank_the_preset() {
+        let cfg = with_settings(|s| {
+            s.routing.preset = RoutingPreset::BypassLan;
+            s.routing.rules = vec![one_rule(
+                RuleKind::IpCidr,
+                "192.168.0.0/16",
+                RuleTarget::Proxy,
+            )];
+        });
+
+        let rules = rules_of(&cfg);
+        let mine = rules
+            .iter()
+            .position(|r| r["ip_cidr"] == json!(["192.168.0.0/16"]))
+            .expect("the user rule is missing");
+        let preset = rules
+            .iter()
+            .position(|r| r["ip_is_private"] == json!(true))
+            .expect("the preset rule is missing");
+        assert!(mine < preset, "a user rule must be consulted first");
+    }
+
+    #[test]
+    fn bypassed_processes_each_get_a_direct_rule() {
+        let cfg = with_settings(|s| {
+            s.routing.bypass_processes = vec!["steam.exe".into(), "discord.exe".into()];
+        });
+
+        for name in ["steam.exe", "discord.exe"] {
+            assert!(
+                has_rule(&cfg, |r| r["process_name"] == json!([name])
+                    && r["outbound"] == json!(TAG_DIRECT)),
+                "{name} is not bypassed"
+            );
+        }
+    }
+
+    // -----------------------------------------------------------------------
+    // The rest of Settings, likewise.
+    // -----------------------------------------------------------------------
+
+    #[test]
+    fn the_inbound_ports_are_the_ones_configured() {
+        let cfg = with_settings(|s| {
+            s.inbound.socks_port = 21080;
+            s.inbound.http_port = 21081;
+            s.inbound.clash_port = 21090;
+        });
+
+        let ports: Vec<u64> = cfg["inbounds"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .filter_map(|i| i["listen_port"].as_u64())
+            .collect();
+        assert!(ports.contains(&21080), "{ports:?}");
+        assert!(ports.contains(&21081), "{ports:?}");
+        assert_eq!(
+            cfg["experimental"]["clash_api"]["external_controller"],
+            json!("127.0.0.1:21090")
+        );
+    }
+
+    #[test]
+    fn allowing_the_lan_changes_what_the_inbounds_listen_on() {
+        let listens = |cfg: &Value| -> Vec<String> {
+            cfg["inbounds"]
+                .as_array()
+                .unwrap()
+                .iter()
+                .filter_map(|i| i["listen"].as_str().map(str::to_string))
+                .collect()
+        };
+
+        let closed = with_settings(|s| s.inbound.allow_lan = false);
+        let open = with_settings(|s| s.inbound.allow_lan = true);
+        assert!(listens(&closed).iter().all(|l| l == "127.0.0.1"));
+        assert!(listens(&open).iter().any(|l| l == "0.0.0.0"));
+    }
+
+    #[test]
+    fn the_configured_resolvers_are_the_ones_used() {
+        let cfg = with_settings(|s| {
+            s.dns.remote = "https://dns.example/dns-query".into();
+            s.dns.direct = "https://direct.example/dns-query".into();
+        });
+
+        let rendered = serde_json::to_string(&cfg["dns"]).unwrap();
+        assert!(rendered.contains("dns.example"), "{rendered}");
+        assert!(rendered.contains("direct.example"), "{rendered}");
+    }
+
+    #[test]
+    fn the_tun_settings_reach_the_adapter() {
+        let cfg = with_settings(|s| {
+            s.mode.0 = TunnelMode::Tun;
+            s.tun.mtu = 1400;
+            s.tun.strict_route = false;
+            s.tun.auto_route = false;
+        });
+
+        let tun = cfg["inbounds"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .find(|i| i["type"] == json!("tun"))
+            .expect("no tun inbound");
+        assert_eq!(tun["mtu"], json!(1400));
+        assert_eq!(tun["strict_route"], json!(false));
+        assert_eq!(tun["auto_route"], json!(false));
+    }
+
+    #[test]
+    fn the_log_level_and_probe_url_are_carried_through() {
+        let cfg = with_settings(|s| {
+            s.core.log_level = "debug".into();
+            s.probe.url = "http://probe.example/generate_204".into();
+        });
+
+        assert_eq!(cfg["log"]["level"], json!("debug"));
+        let auto = cfg["outbounds"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .find(|o| o["tag"] == json!(TAG_AUTO))
+            .expect("no automatic selector");
+        assert_eq!(auto["url"], json!("http://probe.example/generate_204"));
+    }
+
+    #[test]
+    fn multiplex_is_off_until_it_is_switched_on() {
+        let muxed = |cfg: &Value| {
+            cfg["outbounds"]
+                .as_array()
+                .unwrap()
+                .iter()
+                .any(|o| o["multiplex"]["enabled"] == json!(true))
+        };
+
+        assert!(!muxed(&with_settings(|_| {})));
+        assert!(muxed(&with_settings(|s| s.core.multiplex.enabled = true)));
+    }
+
     #[test]
     fn duplicate_names_get_unique_tags() {
         let a = parse_link("vless://uuid@a.com:443?security=tls#Same").unwrap();
