@@ -29,3 +29,5 @@ src-tauri/resources/*
 # Build transcripts
 build.log
 tsconfig.tsbuildinfo
+tauri-build.out
+tauri-build.err
