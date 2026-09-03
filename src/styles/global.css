@@ -777,6 +777,12 @@ p {
 
 .node__body {
   min-width: 0;
+  /* The name and the meta line are spans, so without this they would run
+     together on a single line. */
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  text-align: left;
 }
 
 .node__name {

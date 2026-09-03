@@ -59,6 +59,7 @@ export const en: typeof ru = {
     refresh: 'Refresh',
     manual: 'Added manually',
     imported: 'Added {count} servers',
+    subscriptionAdded: 'Subscription added',
     refreshed: 'Refreshed {count} servers',
     empty: 'No servers yet',
     emptyHint: 'Paste a link or add a subscription to get started',

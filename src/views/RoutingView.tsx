@@ -1,6 +1,6 @@
 import { Plus, Trash2 } from 'lucide-react';
 
-import { Card, Field, Switch } from '../components/ui';
+import { Card, CommitInput, Field, Switch } from '../components/ui';
 import { useI18n } from '../hooks/useI18n';
 import { useStore } from '../lib/store';
 import type { RoutingPreset, RoutingRule, RuleKind, RuleTarget, Settings } from '../lib/types';
@@ -33,9 +33,15 @@ export function RoutingView() {
 
   if (!settings) return null;
 
-  /** Apply a change to a copy and persist it. */
+  /**
+   * Apply a change to a copy and persist it.
+   *
+   * The base is re-read from the store rather than taken from this render, so
+   * two edits made before the first save echoes back cannot clobber each other.
+   */
   const patch = (mutate: (draft: Settings) => void) => {
-    const draft: Settings = structuredClone(settings);
+    const current = useStore.getState().data?.settings ?? settings;
+    const draft: Settings = structuredClone(current);
     mutate(draft);
     void save(draft);
   };
@@ -134,14 +140,14 @@ export function RoutingView() {
 
       <Card title={t('routing.bypassProcesses')}>
         <Field label={t('routing.bypassProcesses')} hint={t('routing.bypassProcessesHint')}>
-          <input
-            className="input"
+          <CommitInput
             value={settings.routing.bypassProcesses.join(', ')}
             placeholder="steam.exe, discord.exe"
-            onChange={(e) =>
+            ariaLabel={t('routing.bypassProcesses')}
+            onCommit={(value) =>
               patch(
                 (d) =>
-                  (d.routing.bypassProcesses = e.target.value
+                  (d.routing.bypassProcesses = value
                     .split(',')
                     .map((s) => s.trim())
                     .filter(Boolean)),
@@ -180,12 +186,12 @@ function RuleRow({
         ))}
       </select>
 
-      <input
-        className="input"
+      <CommitInput
         style={{ flex: 1 }}
         value={rule.value}
         placeholder={t('routing.ruleValue')}
-        onChange={(e) => onChange({ ...rule, value: e.target.value })}
+        ariaLabel={t('routing.ruleValue')}
+        onCommit={(value) => onChange({ ...rule, value })}
       />
 
       <select

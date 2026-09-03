@@ -32,16 +32,18 @@ export function NodesView() {
   const { t, locale } = useI18n();
   const groups = useGroupedNodes();
   const data = useStore((s) => s.data);
-  const status = useStore((s) => s.status);
   const activeOutboundId = useStore((s) => s.activeOutboundId);
   const toast = useStore((s) => s.toast);
   const toastError = useStore((s) => s.toastError);
 
+  // The persisted choice is the source of truth for what is selected: while
+  // disconnected the status carries no node, and reading selection from it
+  // made the list claim "automatic" even when a server had been picked.
+  const selectedId = data?.activeNodeId ?? null;
+
   // While on automatic, show which server the core settled on.
   const autoNode =
-    status?.nodeId == null
-      ? (data?.nodes.find((n) => n.id === activeOutboundId) ?? null)
-      : null;
+    selectedId == null ? (data?.nodes.find((n) => n.id === activeOutboundId) ?? null) : null;
 
   const [adding, setAdding] = useState(false);
   const [pendingDelete, setPendingDelete] = useState<Subscription | null>(null);
@@ -106,7 +108,7 @@ export function NodesView() {
 
       {nodeCount > 0 && (
         <button
-          className={`node${status?.nodeId == null ? ' node--active' : ''}`}
+          className={`node${selectedId == null ? ' node--active' : ''}`}
           onClick={async () => {
             try {
               await api.selectAuto();
@@ -187,7 +189,7 @@ export function NodesView() {
               <NodeRow
                 key={node.id}
                 node={node}
-                selected={node.id === status?.nodeId}
+                selected={node.id === selectedId}
                 inUse={node.id === activeOutboundId}
                 onSelect={() => select(node)}
               />
@@ -406,6 +408,7 @@ function AddDialog({ onClose }: { onClose: () => void }) {
         toast('success', t('nodes.imported', { count }));
       } else {
         await api.addSubscription(url.trim(), name.trim() || undefined);
+        toast('success', t('nodes.subscriptionAdded'));
       }
       onClose();
     } catch (error) {
@@ -415,11 +418,25 @@ function AddDialog({ onClose }: { onClose: () => void }) {
     }
   };
 
+  /**
+   * Route pasted text to the tab that can actually use it.
+   *
+   * A plain http(s) address is a subscription; anything carrying a protocol
+   * scheme is one or more share links. Guessing here saves the user from
+   * pasting into the wrong box and getting a parse error.
+   */
   const paste = async () => {
-    const clip = await readText();
+    const clip = (await readText())?.trim();
     if (!clip) return;
-    if (tab === 'links') setText(clip);
-    else setUrl(clip.trim());
+
+    const isSubscription = /^https?:\/\//i.test(clip) && !clip.includes('\n');
+    if (isSubscription) {
+      setTab('subscription');
+      setUrl(clip);
+    } else {
+      setTab('links');
+      setText(clip);
+    }
   };
 
   const canSubmit = tab === 'links' ? text.trim().length > 0 : url.trim().length > 0;

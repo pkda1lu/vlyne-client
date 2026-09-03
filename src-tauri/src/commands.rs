@@ -38,8 +38,16 @@ pub async fn bootstrap(state: App<'_>) -> Result<Bootstrap> {
         Err(_) => "missing".into(),
     };
 
+    let data = state.store.snapshot();
+    tracing::info!(
+        nodes = data.nodes.len(),
+        subscriptions = data.subscriptions.len(),
+        active_node_id = ?data.active_node_id,
+        "handing the profile to the interface"
+    );
+
     Ok(Bootstrap {
-        data: state.store.snapshot(),
+        data,
         status: state.status(),
         traffic: state.traffic(),
         app_version: env!("CARGO_PKG_VERSION").to_string(),

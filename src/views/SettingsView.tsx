@@ -2,7 +2,7 @@ import { disable as disableAutostart, enable as enableAutostart } from '@tauri-a
 import { FolderOpen, FileJson } from 'lucide-react';
 import { useState } from 'react';
 
-import { Card, Field, Modal, Switch } from '../components/ui';
+import { Card, CommitInput, Field, Modal, Switch } from '../components/ui';
 import { useI18n } from '../hooks/useI18n';
 import { api } from '../lib/ipc';
 import { useStore } from '../lib/store';
@@ -20,8 +20,15 @@ export function SettingsView() {
 
   if (!settings) return null;
 
+  /**
+   * The base is re-read from the store rather than taken from this render.
+   * Saving round-trips through the backend, so blurring two fields in quick
+   * succession would otherwise have the second overwrite the first with a
+   * clone made before the first had come back.
+   */
   const patch = (mutate: (draft: Settings) => void) => {
-    const draft: Settings = structuredClone(settings);
+    const current = useStore.getState().data?.settings ?? settings;
+    const draft: Settings = structuredClone(current);
     mutate(draft);
     void save(draft);
   };
@@ -106,27 +113,24 @@ export function SettingsView() {
       <Card title={t('settings.connection')}>
         <div className="grid-2">
           <Field label={t('settings.socksPort')}>
-            <input
-              className="input"
+            <CommitInput
               type="number"
-              defaultValue={settings.inbound.socksPort}
-              onBlur={(e) => port(e.target.value, (p) => patch((d) => (d.inbound.socksPort = p)))}
+              value={String(settings.inbound.socksPort)}
+              onCommit={(v) => port(v, (p) => patch((d) => (d.inbound.socksPort = p)))}
             />
           </Field>
           <Field label={t('settings.httpPort')}>
-            <input
-              className="input"
+            <CommitInput
               type="number"
-              defaultValue={settings.inbound.httpPort}
-              onBlur={(e) => port(e.target.value, (p) => patch((d) => (d.inbound.httpPort = p)))}
+              value={String(settings.inbound.httpPort)}
+              onCommit={(v) => port(v, (p) => patch((d) => (d.inbound.httpPort = p)))}
             />
           </Field>
           <Field label={t('settings.clashPort')}>
-            <input
-              className="input"
+            <CommitInput
               type="number"
-              defaultValue={settings.inbound.clashPort}
-              onBlur={(e) => port(e.target.value, (p) => patch((d) => (d.inbound.clashPort = p)))}
+              value={String(settings.inbound.clashPort)}
+              onCommit={(v) => port(v, (p) => patch((d) => (d.inbound.clashPort = p)))}
             />
           </Field>
         </div>
@@ -142,17 +146,15 @@ export function SettingsView() {
       <Card title={t('settings.dns')}>
         <div className="grid-2">
           <Field label={t('settings.dnsRemote')} hint={t('settings.dnsRemoteHint')}>
-            <input
-              className="input"
-              defaultValue={settings.dns.remote}
-              onBlur={(e) => patch((d) => (d.dns.remote = e.target.value.trim()))}
+            <CommitInput
+              value={settings.dns.remote}
+              onCommit={(v) => patch((d) => (d.dns.remote = v.trim()))}
             />
           </Field>
           <Field label={t('settings.dnsDirect')}>
-            <input
-              className="input"
-              defaultValue={settings.dns.direct}
-              onBlur={(e) => patch((d) => (d.dns.direct = e.target.value.trim()))}
+            <CommitInput
+              value={settings.dns.direct}
+              onCommit={(v) => patch((d) => (d.dns.direct = v.trim()))}
             />
           </Field>
         </div>
@@ -172,12 +174,11 @@ export function SettingsView() {
 
       <Card title={t('settings.tun')}>
         <Field label={t('settings.mtu')}>
-          <input
-            className="input"
+          <CommitInput
             type="number"
-            defaultValue={settings.tun.mtu}
-            onBlur={(e) => {
-              const mtu = Number(e.target.value);
+            value={String(settings.tun.mtu)}
+            onCommit={(v) => {
+              const mtu = Number(v);
               if (mtu >= 576 && mtu <= 9000) patch((d) => (d.tun.mtu = mtu));
             }}
           />
@@ -204,19 +205,17 @@ export function SettingsView() {
       <Card title={t('settings.probe')}>
         <div className="grid-2">
           <Field label={t('settings.probeUrl')}>
-            <input
-              className="input"
-              defaultValue={settings.probe.url}
-              onBlur={(e) => patch((d) => (d.probe.url = e.target.value.trim()))}
+            <CommitInput
+              value={settings.probe.url}
+              onCommit={(v) => patch((d) => (d.probe.url = v.trim()))}
             />
           </Field>
           <Field label={t('settings.probeTimeout')}>
-            <input
-              className="input"
+            <CommitInput
               type="number"
-              defaultValue={settings.probe.timeoutMs}
-              onBlur={(e) => {
-                const ms = Number(e.target.value);
+              value={String(settings.probe.timeoutMs)}
+              onCommit={(v) => {
+                const ms = Number(v);
                 if (ms >= 500 && ms <= 30000) patch((d) => (d.probe.timeoutMs = ms));
               }}
             />
@@ -224,12 +223,11 @@ export function SettingsView() {
         </div>
 
         <Field label={t('settings.probeInterval')} hint={t('settings.probeIntervalHint')}>
-          <input
-            className="input"
+          <CommitInput
             type="number"
-            defaultValue={settings.probe.intervalS}
-            onBlur={(e) => {
-              const seconds = Number(e.target.value);
+            value={String(settings.probe.intervalS)}
+            onCommit={(v) => {
+              const seconds = Number(v);
               if (seconds >= 30 && seconds <= 3600) patch((d) => (d.probe.intervalS = seconds));
             }}
           />

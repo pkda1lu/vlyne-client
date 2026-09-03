@@ -781,6 +781,24 @@ mod tests {
         assert_eq!(json["probe"]["intervalS"], serde_json::json!(60));
     }
 
+    /// The selected server is persisted in the profile and handed to the UI by
+    /// `bootstrap`, so both directions have to keep the field.
+    #[test]
+    fn active_node_id_survives_a_load_and_serialise_round_trip() {
+        let on_disk = r#"{
+            "nodes": [],
+            "subscriptions": [],
+            "activeNodeId": "n2",
+            "settings": {}
+        }"#;
+
+        let data: AppData = serde_json::from_str(on_disk).unwrap();
+        assert_eq!(data.active_node_id.as_deref(), Some("n2"));
+
+        let out = serde_json::to_value(&data).unwrap();
+        assert_eq!(out["activeNodeId"], serde_json::json!("n2"));
+    }
+
     #[test]
     fn tunnel_mode_round_trips_through_json() {
         for mode in [TunnelMode::SystemProxy, TunnelMode::Tun] {

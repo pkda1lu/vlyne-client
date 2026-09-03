@@ -1,4 +1,4 @@
-import { ArrowDown, ArrowUp, Clock, Globe, Power, ShieldCheck } from 'lucide-react';
+import { ArrowDown, ArrowUp, Clock, Globe, Plus, Power, ShieldCheck } from 'lucide-react';
 import { useEffect, useState } from 'react';
 
 import { SpeedChart } from '../components/SpeedChart';
@@ -78,9 +78,13 @@ export function HomeView({ onManageNodes }: { onManageNodes: () => void }) {
     .filter(Boolean)
     .join(' ');
 
-  // In automatic mode the core picks the node, so name the one it actually chose.
+  // In automatic mode the core picks the node, so name the one it actually
+  // chose; while disconnected neither is set, so fall back to the persisted
+  // choice rather than showing nothing.
   const activeNode =
-    data?.nodes.find((n) => n.id === (activeOutboundId ?? status?.nodeId)) ?? null;
+    data?.nodes.find(
+      (n) => n.id === (activeOutboundId ?? status?.nodeId ?? data?.activeNodeId),
+    ) ?? null;
 
   const detail = () => {
     if (state === 'failed' && status?.error) return status.error;
@@ -128,6 +132,16 @@ export function HomeView({ onManageNodes }: { onManageNodes: () => void }) {
 
         <div className="connect__state">{t(`state.${state}`)}</div>
         <div className="connect__detail">{detail()}</div>
+
+        {/* With nothing to connect to, the only useful action is adding a
+            server, so offer it outright instead of leaving the orb as the
+            sole, unlabelled way through. */}
+        {!hasNodes && (
+          <button className="btn btn--primary" onClick={onManageNodes}>
+            <Plus size={15} />
+            {t('nodes.add')}
+          </button>
+        )}
 
         {connected && (
           <div className="row">

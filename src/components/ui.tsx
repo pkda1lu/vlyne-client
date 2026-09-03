@@ -1,7 +1,77 @@
 /** Small presentational primitives shared by every view. */
 
 import { X } from 'lucide-react';
-import { useEffect, type ReactNode } from 'react';
+import { useEffect, useRef, useState, type ReactNode } from 'react';
+
+// ---------------------------------------------------------------------------
+// Committing text input
+// ---------------------------------------------------------------------------
+
+/**
+ * A text input that reports its value only once the edit is finished.
+ *
+ * Saving a setting round-trips through the backend, writes the profile to disk
+ * and can force the core to reload. Doing that per keystroke made typing a
+ * routing rule reconnect the tunnel once per character, so edits are held
+ * locally and committed on blur or Enter.
+ *
+ * While the field has focus the external value is ignored: a save echoing back
+ * mid-edit would otherwise yank the caret to the end of the text.
+ */
+export function CommitInput({
+  value,
+  onCommit,
+  placeholder,
+  className = 'input',
+  style,
+  type,
+  ariaLabel,
+}: {
+  value: string;
+  onCommit: (value: string) => void;
+  placeholder?: string;
+  className?: string;
+  style?: React.CSSProperties;
+  type?: 'text' | 'number';
+  ariaLabel?: string;
+}) {
+  const [draft, setDraft] = useState(value);
+  const focused = useRef(false);
+
+  useEffect(() => {
+    if (!focused.current) setDraft(value);
+  }, [value]);
+
+  const commit = () => {
+    if (draft !== value) onCommit(draft);
+  };
+
+  return (
+    <input
+      className={className}
+      style={style}
+      type={type}
+      value={draft}
+      placeholder={placeholder}
+      aria-label={ariaLabel}
+      onChange={(e) => setDraft(e.target.value)}
+      onFocus={() => (focused.current = true)}
+      onBlur={() => {
+        focused.current = false;
+        commit();
+      }}
+      onKeyDown={(e) => {
+        if (e.key === 'Enter') {
+          e.currentTarget.blur();
+        } else if (e.key === 'Escape') {
+          // Abandon the edit rather than committing half a value.
+          setDraft(value);
+          e.currentTarget.blur();
+        }
+      }}
+    />
+  );
+}
 
 // ---------------------------------------------------------------------------
 // Switch
