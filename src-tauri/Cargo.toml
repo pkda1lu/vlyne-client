@@ -1,6 +1,6 @@
 [package]
 name = "vlyne"
-version = "3.0.0"
+version = "3.1.0"
 description = "Vlyne — a fast, modern proxy client"
 authors = ["Vlyne"]
 edition = "2021"

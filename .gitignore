@@ -31,3 +31,5 @@ build.log
 tsconfig.tsbuildinfo
 tauri-build.out
 tauri-build.err
+
+release/
