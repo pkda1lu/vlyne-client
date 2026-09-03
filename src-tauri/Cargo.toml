@@ -1,0 +1,65 @@
+[package]
+name = "vlyne"
+version = "3.0.0"
+description = "Vlyne — a fast, modern proxy client"
+authors = ["Vlyne"]
+edition = "2021"
+rust-version = "1.77"
+
+[lib]
+name = "vlyne_lib"
+crate-type = ["staticlib", "cdylib", "rlib"]
+
+[build-dependencies]
+tauri-build = { version = "2", features = [] }
+
+[dependencies]
+tauri = { version = "2", features = ["tray-icon", "image-png", "protocol-asset"] }
+tauri-plugin-opener = "2"
+tauri-plugin-dialog = "2"
+tauri-plugin-clipboard-manager = "2"
+tauri-plugin-os = "2"
+tauri-plugin-process = "2"
+
+serde = { version = "1", features = ["derive"] }
+serde_json = { version = "1", features = ["preserve_order"] }
+thiserror = "2"
+anyhow = "1"
+
+tokio = { version = "1", features = ["rt-multi-thread", "macros", "process", "io-util", "net", "time", "sync", "fs"] }
+tokio-tungstenite = { version = "0.24", default-features = false, features = ["connect"] }
+futures-util = { version = "0.3", default-features = false, features = ["std"] }
+reqwest = { version = "0.12", default-features = false, features = ["json", "rustls-tls", "gzip", "socks", "stream"] }
+
+url = "2"
+uuid = { version = "1", features = ["v4", "serde"] }
+base64 = "0.22"
+percent-encoding = "2"
+parking_lot = "0.12"
+chrono = { version = "0.4", default-features = false, features = ["clock", "serde"] }
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["env-filter"] }
+tracing-appender = "0.2"
+rand = "0.8"
+
+[target.'cfg(windows)'.dependencies]
+tauri-plugin-single-instance = "2"
+tauri-plugin-updater = "2"
+tauri-plugin-autostart = "2"
+windows-sys = { version = "0.59", features = [
+  "Win32_Foundation",
+  "Win32_Networking_WinInet",
+  "Win32_System_Registry",
+  "Win32_System_Threading",
+  "Win32_Security",
+  "Win32_UI_Shell",
+  "Win32_UI_WindowsAndMessaging",
+  "Win32_System_Com",
+] }
+
+[profile.release]
+opt-level = "s"
+lto = true
+codegen-units = 1
+panic = "abort"
+strip = true

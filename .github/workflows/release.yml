@@ -1,0 +1,57 @@
+name: Release
+
+# Publishing is deliberately manual: pushing a tag builds the installer and the
+# updater manifest, so a release never happens as a side effect of a merge.
+on:
+  push:
+    tags: ['v*']
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: windows-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - uses: dtolnay/rust-toolchain@stable
+
+      # The Rust build dominates the run time; cache it across releases.
+      - uses: swatinem/rust-cache@v2
+        with:
+          workspaces: src-tauri
+
+      - name: Install dependencies
+        run: npm ci
+
+      # Pinned binaries and rule sets are not committed, so fetch them first.
+      - name: Fetch core assets
+        run: npm run core:fetch
+
+      - name: Check
+        run: npm run check
+
+      - name: Build and publish
+        uses: tauri-apps/tauri-action@v0
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          # Without these the updater artifacts are unsigned and every client
+          # rejects the update, so a missing secret must fail the release.
+          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
+        with:
+          tagName: ${{ github.ref_name }}
+          releaseName: Vlyne ${{ github.ref_name }}
+          releaseDraft: true
+          prerelease: false
+          # Produces latest.json next to the installer, which is the endpoint
+          # configured in tauri.conf.json.
+          includeUpdaterJson: true

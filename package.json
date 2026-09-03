@@ -1,76 +1,38 @@
 {
   "name": "vlyne-client",
   "private": true,
-  "version": "2.1.1",
-  "main": "dist-electron/main.js",
+  "version": "3.0.0",
+  "type": "module",
   "scripts": {
-    "dev": "concurrently \"npm run dev:vite\" \"npm run dev:electron\"",
-    "dev:vite": "vite",
-    "dev:electron": "wait-on tcp:5173 && tsc -p electron/tsconfig.json && cross-env NODE_ENV=development electron .",
-    "build": "tsc && vite build && tsc -p electron/tsconfig.json && electron-builder",
-    "lint": "eslint .",
+    "dev": "vite",
+    "build": "tsc -p tsconfig.json --noEmit && vite build",
     "preview": "vite preview",
-    "publish": "npm run build -- --publish always"
-  },
-  "build": {
-    "appId": "com.vlyne.client",
-    "productName": "Vlyne Client",
-    "directories": {
-      "output": "release"
-    },
-    "files": [
-      "dist/**/*",
-      "dist-electron/**/*"
-    ],
-    "win": {
-      "target": "nsis",
-      "icon": "public/logo.png"
-    },
-    "extraResources": [
-      {
-        "from": "resources/bin",
-        "to": "bin",
-        "filter": [
-          "**/*"
-        ]
-      },
-      {
-        "from": "public/logo.png",
-        "to": "logo.png"
-      }
-    ],
-    "publish": [
-      {
-        "provider": "github",
-        "owner": "pkda1lu",
-        "repo": "vlyne-client"
-      }
-    ]
+    "tauri": "tauri",
+    "app:dev": "node scripts/fetch-core.mjs && tauri dev",
+    "app:build": "node scripts/fetch-core.mjs && tauri build",
+    "core:fetch": "node scripts/fetch-core.mjs",
+    "check": "tsc -p tsconfig.json --noEmit && cargo test --manifest-path src-tauri/Cargo.toml --lib"
   },
   "dependencies": {
-    "electron-squirrel-startup": "^1.0.1",
-    "electron-updater": "^6.6.2",
+    "@tauri-apps/api": "^2.11.1",
+    "@tauri-apps/plugin-autostart": "^2.5.1",
+    "@tauri-apps/plugin-clipboard-manager": "^2.3.3",
+    "@tauri-apps/plugin-dialog": "^2.7.3",
+    "@tauri-apps/plugin-opener": "^2.5.5",
+    "@tauri-apps/plugin-os": "^2.3.2",
+    "@tauri-apps/plugin-process": "^2.3.1",
+    "@tauri-apps/plugin-updater": "^2.11.0",
     "lucide-react": "^0.555.0",
     "react": "^19.2.0",
-    "react-dom": "^19.2.0"
+    "react-dom": "^19.2.0",
+    "zustand": "^5.0.8"
   },
   "devDependencies": {
-    "@eslint/js": "^9.39.1",
-    "@types/node": "^24.10.1",
+    "@tauri-apps/cli": "^2.11.4",
     "@types/react": "^19.2.5",
     "@types/react-dom": "^19.2.3",
     "@vitejs/plugin-react": "^5.1.1",
-    "concurrently": "^9.2.1",
-    "cross-env": "^10.1.0",
-    "electron": "^39.2.5",
-    "electron-builder": "^26.0.12",
-    "eslint": "^9.39.1",
-    "eslint-plugin-react-hooks": "^7.0.1",
-    "eslint-plugin-react-refresh": "^0.4.24",
-    "globals": "^16.5.0",
     "typescript": "~5.9.3",
-    "typescript-eslint": "^8.46.4",
-    "vite": "^7.2.4",
-    "wait-on": "^9.0.3"
+    "vite": "^7.2.4"
   }
 }
