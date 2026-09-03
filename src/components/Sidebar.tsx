@@ -1,13 +1,14 @@
-import { Globe, Power, ScrollText, Server, Settings2 } from 'lucide-react';
+import { Globe, Power, ScrollText, Server, Settings2, Wallet } from 'lucide-react';
 
 import { useI18n } from '../hooks/useI18n';
 import { useStore } from '../lib/store';
 
-export type ViewId = 'home' | 'nodes' | 'routing' | 'settings' | 'logs';
+export type ViewId = 'home' | 'nodes' | 'account' | 'routing' | 'settings' | 'logs';
 
 const ITEMS: { id: ViewId; icon: typeof Power; labelKey: string }[] = [
   { id: 'home', icon: Power, labelKey: 'nav.home' },
   { id: 'nodes', icon: Server, labelKey: 'nav.nodes' },
+  { id: 'account', icon: Wallet, labelKey: 'nav.account' },
   { id: 'routing', icon: Globe, labelKey: 'nav.routing' },
   { id: 'settings', icon: Settings2, labelKey: 'nav.settings' },
   { id: 'logs', icon: ScrollText, labelKey: 'nav.logs' },

@@ -14,7 +14,11 @@
     "core:window:allow-set-focus",
     "core:window:allow-is-maximized",
     "core:event:default",
-    "opener:allow-open-url",
+    {
+      "identifier": "opener:allow-open-url",
+      "comment": "Payment pages, the bot and the support chat all open in the user's browser. The permission is worthless without a scope: without one every call is refused, which silently breaks checkout. Restricted to https so a link can never downgrade to plaintext, and the addresses themselves come from our own service.",
+      "allow": [{ "url": "https://*" }]
+    },
     "dialog:allow-open",
     "dialog:allow-save",
     "dialog:allow-message",

@@ -4,13 +4,13 @@ import { useEffect, useState } from 'react';
 import { SpeedChart } from '../components/SpeedChart';
 import { Segmented } from '../components/ui';
 import { useI18n } from '../hooks/useI18n';
-import { formatBytes, formatDuration, formatSpeed } from '../lib/format';
+import { daysUntil, formatBytes, formatDate, formatDuration, formatSpeed } from '../lib/format';
 import { api } from '../lib/ipc';
 import { useStore } from '../lib/store';
-import type { TunnelMode } from '../lib/types';
+import type { Subscription, TunnelMode } from '../lib/types';
 
 export function HomeView({ onManageNodes }: { onManageNodes: () => void }) {
-  const { t } = useI18n();
+  const { t, locale } = useI18n();
   const status = useStore((s) => s.status);
   const traffic = useStore((s) => s.traffic);
   const history = useStore((s) => s.history);
@@ -85,6 +85,16 @@ export function HomeView({ onManageNodes }: { onManageNodes: () => void }) {
     data?.nodes.find(
       (n) => n.id === (activeOutboundId ?? status?.nodeId ?? data?.activeNodeId),
     ) ?? null;
+
+  // Show the plan the active server came from. With none selected, and only
+  // one subscription in play, that one is unambiguous enough to show anyway.
+  const plan = (() => {
+    const subs = data?.subscriptions.filter((s) => s.usage) ?? [];
+    const owner = activeNode?.subscriptionId
+      ? subs.find((s) => s.id === activeNode.subscriptionId)
+      : undefined;
+    return owner ?? (subs.length === 1 ? subs[0] : undefined) ?? null;
+  })();
 
   const detail = () => {
     if (state === 'failed' && status?.error) return status.error;
@@ -185,10 +195,87 @@ export function HomeView({ onManageNodes }: { onManageNodes: () => void }) {
         />
       </div>
 
+      {plan && <PlanSummary subscription={plan} locale={locale} />}
+
       <section className="card">
         <SpeedChart history={history} label={t('home.download')} />
       </section>
     </div>
+  );
+}
+
+/**
+ * What is left of the plan: traffic and time.
+ *
+ * The numbers come from the `subscription-userinfo` header the provider sends
+ * with the subscription, so a plan that reports neither a quota nor an expiry
+ * shows nothing rather than an empty frame.
+ */
+function PlanSummary({
+  subscription,
+  locale,
+}: {
+  subscription: Subscription;
+  locale: string;
+}) {
+  const { t } = useI18n();
+  const usage = subscription.usage;
+  if (!usage) return null;
+
+  const hasQuota = usage.total > 0;
+  const used = usage.upload + usage.download;
+  // A provider that over-reports usage should not produce a negative figure.
+  const left = Math.max(0, usage.total - used);
+  const ratio = hasQuota ? Math.min(1, used / usage.total) : 0;
+
+  const daysLeft = usage.expire ? daysUntil(usage.expire) : null;
+  const hasExpiry = daysLeft !== null;
+  if (!hasQuota && !hasExpiry) return null;
+
+  const trafficTone = ratio > 0.9 ? 'bad' : ratio > 0.75 ? 'warn' : 'ok';
+  const timeTone = daysLeft === null ? 'ok' : daysLeft <= 0 ? 'bad' : daysLeft < 5 ? 'warn' : 'ok';
+
+  return (
+    <section className="card">
+      <div className="row row--between" style={{ marginBottom: 10 }}>
+        <span className="card__title" style={{ margin: 0 }}>
+          {subscription.name}
+        </span>
+        {hasExpiry && (
+          <span className={`chip${timeTone === 'ok' ? '' : ` chip--${timeTone}`}`}>
+            {daysLeft! <= 0
+              ? t('nodes.expired')
+              : daysLeft! < 30
+                ? t('nodes.expiresIn', { days: daysLeft! })
+                : t('nodes.expires', { date: formatDate(usage.expire, locale) })}
+          </span>
+        )}
+      </div>
+
+      {hasQuota ? (
+        <>
+          <div className="row row--between" style={{ marginBottom: 6 }}>
+            <span className="metric__value" style={{ fontSize: 20 }}>
+              {t('home.trafficLeft', { left: formatBytes(left) })}
+            </span>
+            <span className="field__hint">
+              {t('nodes.usage', {
+                used: formatBytes(used),
+                total: formatBytes(usage.total),
+              })}
+            </span>
+          </div>
+          <span className="meter">
+            <span
+              className={`meter__fill${trafficTone === 'ok' ? '' : ` meter__fill--${trafficTone}`}`}
+              style={{ width: `${ratio * 100}%` }}
+            />
+          </span>
+        </>
+      ) : (
+        <span className="field__hint">{t('home.trafficUnlimited')}</span>
+      )}
+    </section>
   );
 }
 

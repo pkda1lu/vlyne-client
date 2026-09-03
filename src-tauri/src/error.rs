@@ -40,6 +40,12 @@ pub enum Error {
     Subscription(String),
 
     #[error("{0}")]
+    Account(String),
+
+    #[error("this device is not linked to an account")]
+    AccountUnlinked,
+
+    #[error("{0}")]
     Io(#[from] std::io::Error),
 
     #[error("{0}")]
@@ -64,6 +70,8 @@ impl Error {
             Error::SystemProxy(_) => "proxy.failed",
             Error::BadLink(_) => "link.bad",
             Error::Subscription(_) => "subscription.failed",
+            Error::Account(_) => "account.failed",
+            Error::AccountUnlinked => "account.unlinked",
             Error::Io(_) => "io",
             Error::Json(_) => "json",
             Error::Other(_) => "unknown",

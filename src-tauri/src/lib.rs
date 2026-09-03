@@ -1,5 +1,6 @@
 //! Vlyne — a sing-box based proxy client for Windows.
 
+mod account;
 mod clash;
 mod commands;
 mod core;
@@ -66,6 +67,14 @@ pub fn run() {
             commands::restart_elevated,
             commands::active_outbound_node,
             commands::open_data_folder,
+            commands::account_info,
+            commands::account_link,
+            commands::account_unlink,
+            commands::account_set_api_base,
+            commands::account_state,
+            commands::account_quote,
+            commands::account_buy,
+            commands::account_check,
             commands::get_logs,
             commands::clear_logs,
             commands::preview_config,

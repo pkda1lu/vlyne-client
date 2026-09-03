@@ -73,6 +73,8 @@ impl Paths {
 struct Session {
     clash: ClashClient,
     tags: TagMap,
+    /// Base port of the probe lanes, when the core was given a free range.
+    probe_base: Option<u16>,
     /// Dropping this stops the traffic stream task.
     _traffic_stop: mpsc::UnboundedSender<()>,
 }
@@ -249,12 +251,21 @@ impl AppState {
         let secret = random_secret();
         let clash_addr = format!("127.0.0.1:{}", settings.inbound.clash_port);
 
+        // Latency measurement is a convenience; a busy port range must never be
+        // the reason the tunnel refuses to come up, so the lanes are simply
+        // left out when no free run of ports can be found.
+        let probe_base = singbox::find_probe_base(settings.inbound.probe_port);
+        if probe_base.is_none() {
+            tracing::warn!("no free port range for latency probes; falling back to TCP checks");
+        }
+
         let (config, tags) = singbox::generate(GenerateArgs {
             nodes,
             active_id,
             settings,
             paths: &self.paths.core_paths(),
             clash_secret: &secret,
+            probe_base,
         })?;
 
         let (exit_tx, mut exit_rx) = mpsc::unbounded_channel();
@@ -292,6 +303,7 @@ impl AppState {
         *self.session.lock() = Some(Session {
             clash,
             tags,
+            probe_base,
             _traffic_stop: stop_tx,
         });
 
@@ -498,30 +510,104 @@ impl AppState {
             .filter(|n| n.unsupported_reason().is_none())
             .collect();
 
-        let session = self.session.lock().as_ref().map(|s| (s.clash.clone(), s.tags.clone()));
+        let session = self
+            .session
+            .lock()
+            .as_ref()
+            .map(|s| (s.clash.clone(), s.tags.clone(), s.probe_base));
         let timeout = settings.probe.timeout_ms;
         let url = settings.probe.url.clone();
 
-        let mut tasks = Vec::with_capacity(nodes.len());
-        for node in nodes {
-            let session = session.clone();
+        // Both paths hand back batches of results so the collector below stays
+        // the same shape whichever way the measurement was taken.
+        type Batch = Vec<(String, Option<u32>)>;
+        let mut tasks: Vec<tokio::task::JoinHandle<Batch>> = Vec::new();
+
+        // Without a running core, or without probe lanes, the best available
+        // signal is whether the endpoint accepts a TCP connection at all.
+        let Some((clash, tags, Some(base))) = session else {
+            for node in nodes {
+                tasks.push(tokio::spawn(async move {
+                    let latency =
+                        crate::clash::tcp_latency(&node.server, node.server_port, timeout).await;
+                    vec![(node.id, latency)]
+                }));
+            }
+            return self.collect_latencies(tasks).await;
+        };
+
+        // Resolve the probe host once up front. The lanes resolve locally, so
+        // without this the first node measured pays for a cold DNS lookup and
+        // reads as a timeout no matter how good it is.
+        if let Some(host) = url
+            .split("://")
+            .nth(1)
+            .and_then(|rest| rest.split('/').next())
+            .filter(|h| !h.is_empty())
+        {
+            let target = if host.contains(':') {
+                host.to_string()
+            } else {
+                format!("{host}:80")
+            };
+            let _ = tokio::time::timeout(
+                std::time::Duration::from_secs(5),
+                tokio::net::lookup_host(target),
+            )
+            .await;
+        }
+
+        // Each lane owns a selector, so a lane measures its share of the nodes
+        // one at a time while the lanes themselves run concurrently.
+        let lanes = singbox::PROBE_LANES as usize;
+        let mut buckets: Vec<Vec<Node>> = (0..lanes).map(|_| Vec::new()).collect();
+        for (i, node) in nodes.into_iter().enumerate() {
+            buckets[i % lanes].push(node);
+        }
+
+        for (lane, bucket) in buckets.into_iter().enumerate() {
+            if bucket.is_empty() {
+                continue;
+            }
+            let clash = clash.clone();
+            let tags = tags.clone();
             let url = url.clone();
+            let lane = lane as u16;
+
             tasks.push(tokio::spawn(async move {
-                let latency = match session {
-                    Some((clash, tags)) => match tags.tag_of(&node.id) {
-                        Some(tag) => clash.delay(tag, &url, timeout).await.ok().flatten(),
+                let selector = singbox::probe_selector_tag(lane);
+                let port = singbox::probe_port(base, lane);
+                let mut out = Vec::with_capacity(bucket.len());
+
+                for node in bucket {
+                    let latency = match tags.tag_of(&node.id) {
+                        Some(tag) => match clash.select(&selector, tag).await {
+                            Ok(()) => crate::clash::http_latency(port, &url, timeout).await,
+                            Err(e) => {
+                                tracing::warn!("probe lane {lane} could not switch: {e}");
+                                None
+                            }
+                        },
                         None => None,
-                    },
-                    None => crate::clash::tcp_latency(&node.server, node.server_port, timeout).await,
-                };
-                (node.id, latency)
+                    };
+                    out.push((node.id, latency));
+                }
+                out
             }));
         }
 
-        let mut results = Vec::with_capacity(tasks.len());
+        self.collect_latencies(tasks).await
+    }
+
+    /// Await measurement batches, persist them and tell the UI.
+    async fn collect_latencies(
+        &self,
+        tasks: Vec<tokio::task::JoinHandle<Vec<(String, Option<u32>)>>>,
+    ) -> Result<()> {
+        let mut results = Vec::new();
         for task in tasks {
-            if let Ok(result) = task.await {
-                results.push(result);
+            if let Ok(batch) = task.await {
+                results.extend(batch);
             }
         }
 

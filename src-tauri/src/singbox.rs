@@ -18,6 +18,45 @@ pub const TAG_AUTO: &str = "auto";
 /// Tag of the outbound that leaves the machine untouched.
 pub const TAG_DIRECT: &str = "direct";
 
+/// How many nodes can be measured at once.
+///
+/// A selector can only point at one node at a time, so each concurrent probe
+/// needs its own selector and its own loopback inbound to reach it.
+pub const PROBE_LANES: u16 = 8;
+
+/// Tag of the selector serving probe lane `lane`.
+pub fn probe_selector_tag(lane: u16) -> String {
+    format!("probe-{lane}")
+}
+
+fn probe_inbound_tag(lane: u16) -> String {
+    format!("probe-in-{lane}")
+}
+
+/// Loopback port that reaches probe lane `lane`, given the run's base port.
+pub fn probe_port(base: u16, lane: u16) -> u16 {
+    base.saturating_add(lane)
+}
+
+/// Find a free run of [`PROBE_LANES`] consecutive loopback ports at or above
+/// `preferred`.
+///
+/// A single occupied port would otherwise stop the core from starting at all,
+/// which would trade a working tunnel for a latency feature.
+pub fn find_probe_base(preferred: u16) -> Option<u16> {
+    let is_free = |port: u16| std::net::TcpListener::bind(("127.0.0.1", port)).is_ok();
+
+    let start = preferred.max(1024);
+    let mut base = start;
+    while base.checked_add(PROBE_LANES).is_some() && base < start.saturating_add(400) {
+        if (0..PROBE_LANES).all(|lane| is_free(base + lane)) {
+            return Some(base);
+        }
+        base = base.saturating_add(PROBE_LANES);
+    }
+    None
+}
+
 /// Host the connectivity check asks for its view of our public address.
 ///
 /// Shared with `commands::check_connectivity` so the routing exception and the
@@ -50,6 +89,9 @@ pub struct GenerateArgs<'a> {
     pub paths: &'a CorePaths,
     /// Secret guarding the Clash API. Generated fresh per run.
     pub clash_secret: &'a str,
+    /// First loopback port of the probe lanes, already checked to be free.
+    /// `None` leaves the lanes out, which only costs latency measurement.
+    pub probe_base: Option<u16>,
 }
 
 /// Maps a node id to the outbound tag it was given, so the UI can address
@@ -80,6 +122,7 @@ fn assign_tags(nodes: &[&Node]) -> Vec<String> {
         TAG_AUTO.into(),
         TAG_DIRECT.into(),
     ];
+    used.extend((0..PROBE_LANES).map(probe_selector_tag));
     let mut tags = Vec::with_capacity(nodes.len());
 
     for node in nodes {
@@ -400,7 +443,7 @@ pub fn build_outbound(node: &Node, settings: &Settings, tag: &str) -> Result<Val
 // Inbounds
 // ---------------------------------------------------------------------------
 
-fn build_inbounds(settings: &Settings) -> Vec<Value> {
+fn build_inbounds(settings: &Settings, probe_base: Option<u16>) -> Vec<Value> {
     let listen = if settings.inbound.allow_lan {
         "0.0.0.0"
     } else {
@@ -425,6 +468,20 @@ fn build_inbounds(settings: &Settings) -> Vec<Value> {
             "listen": listen,
             "listen_port": settings.inbound.http_port,
         }));
+    }
+
+    // One loopback SOCKS inbound per probe lane. They are bound to 127.0.0.1
+    // regardless of the LAN setting: nothing outside this machine has any
+    // business steering a probe selector.
+    if let Some(base) = probe_base {
+        for lane in 0..PROBE_LANES {
+            inbounds.push(json!({
+                "type": "socks",
+                "tag": probe_inbound_tag(lane),
+                "listen": "127.0.0.1",
+                "listen_port": probe_port(base, lane),
+            }));
+        }
     }
 
     if settings.mode.0 == TunnelMode::Tun {
@@ -637,7 +694,12 @@ fn user_rule_value(rule: &crate::model::RoutingRule) -> Option<(&'static str, Va
     })
 }
 
-fn build_route(settings: &Settings, routing: &RoutingSettings, paths: &CorePaths) -> Value {
+fn build_route(
+    settings: &Settings,
+    routing: &RoutingSettings,
+    paths: &CorePaths,
+    with_probe_lanes: bool,
+) -> Value {
     let mut sets = RuleSets::new();
     let dir = &paths.rule_sets_dir;
     let mut rules: Vec<Value> = Vec::new();
@@ -646,6 +708,17 @@ fn build_route(settings: &Settings, routing: &RoutingSettings, paths: &CorePaths
     // to be hijacked before anything else claims port 53.
     rules.push(json!({ "action": "sniff" }));
     rules.push(json!({ "protocol": "dns", "action": "hijack-dns" }));
+
+    // Latency probes are pinned to their lane before anything else gets a say,
+    // so a user rule cannot silently divert a measurement to another node.
+    if with_probe_lanes {
+        for lane in 0..PROBE_LANES {
+            rules.push(json!({
+                "inbound": [probe_inbound_tag(lane)],
+                "outbound": probe_selector_tag(lane),
+            }));
+        }
+    }
 
     // The connectivity check has to travel the tunnel to mean anything, so it
     // is pinned to the proxy above the client-bypass rule that follows.
@@ -749,6 +822,7 @@ pub fn generate(args: GenerateArgs<'_>) -> Result<(Value, TagMap)> {
         settings,
         paths,
         clash_secret,
+        probe_base,
     } = args;
 
     // Nodes the core cannot dial would make the whole config invalid, so they
@@ -800,6 +874,22 @@ pub fn generate(args: GenerateArgs<'_>) -> Result<(Value, TagMap)> {
         "interrupt_exist_connections": false,
     }));
 
+    // One selector per probe lane. The app points a lane at a node and then
+    // makes its own request through that lane's inbound, which is the only way
+    // to control the probe URL: the core ignores the `url` parameter on its
+    // own delay endpoint and always reaches for www.gstatic.com.
+    if probe_base.is_some() {
+        for lane in 0..PROBE_LANES {
+            outbounds.push(json!({
+                "type": "selector",
+                "tag": probe_selector_tag(lane),
+                "outbounds": tags,
+                "default": tags[0],
+                "interrupt_exist_connections": false,
+            }));
+        }
+    }
+
     for (node, tag) in usable.iter().zip(tags.iter()) {
         outbounds.push(build_outbound(node, settings, tag)?);
     }
@@ -817,9 +907,9 @@ pub fn generate(args: GenerateArgs<'_>) -> Result<(Value, TagMap)> {
             "timestamp": true,
         },
         "dns": build_dns(settings, &settings.dns),
-        "inbounds": build_inbounds(settings),
+        "inbounds": build_inbounds(settings, probe_base),
         "outbounds": outbounds,
-        "route": build_route(settings, &settings.routing, paths),
+        "route": build_route(settings, &settings.routing, paths, probe_base.is_some()),
         "experimental": {
             "clash_api": {
                 "external_controller": format!("127.0.0.1:{}", settings.inbound.clash_port),
@@ -868,6 +958,7 @@ mod tests {
             settings,
             paths: &paths(),
             clash_secret: "secret",
+            probe_base: None,
         })
         .unwrap()
         .0
@@ -934,6 +1025,7 @@ mod tests {
             settings: &Settings::default(),
             paths: &paths(),
             clash_secret: "s",
+            probe_base: None,
         })
         .unwrap();
 
@@ -949,6 +1041,75 @@ mod tests {
         assert!(!tags.contains(&"Bad"));
     }
 
+    /// The lanes are what make the configured probe URL mean anything: the
+    /// core ignores the url given to its own delay endpoint, so measurements
+    /// have to travel a path the app controls end to end.
+    #[test]
+    fn probe_lanes_pair_an_inbound_with_a_selector() {
+        let node = parse_link("vless://uuid@a.com:443?security=tls#N").unwrap();
+        let (cfg, _) = generate(GenerateArgs {
+            nodes: std::slice::from_ref(&node),
+            active_id: None,
+            settings: &Settings::default(),
+            paths: &paths(),
+            clash_secret: "s",
+            probe_base: Some(17100),
+        })
+        .unwrap();
+
+        for lane in 0..PROBE_LANES {
+            let port = probe_port(17100, lane);
+            assert!(
+                cfg["inbounds"]
+                    .as_array()
+                    .unwrap()
+                    .iter()
+                    .any(|i| i["listen_port"] == json!(port) && i["listen"] == json!("127.0.0.1")),
+                "lane {lane} has no inbound on {port}"
+            );
+            assert!(
+                cfg["outbounds"]
+                    .as_array()
+                    .unwrap()
+                    .iter()
+                    .any(|o| o["tag"] == json!(probe_selector_tag(lane))),
+                "lane {lane} has no selector"
+            );
+            assert!(
+                cfg["route"]["rules"]
+                    .as_array()
+                    .unwrap()
+                    .iter()
+                    .any(|r| r["outbound"] == json!(probe_selector_tag(lane))),
+                "lane {lane} is not routed"
+            );
+        }
+    }
+
+    /// A busy port range must cost only the measurements, never the tunnel.
+    #[test]
+    fn without_a_free_range_the_lanes_are_simply_absent() {
+        let node = parse_link("vless://uuid@a.com:443?security=tls#N").unwrap();
+        let (cfg, _) = generate(GenerateArgs {
+            nodes: std::slice::from_ref(&node),
+            active_id: None,
+            settings: &Settings::default(),
+            paths: &paths(),
+            clash_secret: "s",
+            probe_base: None,
+        })
+        .unwrap();
+
+        let tags: Vec<_> = cfg["outbounds"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .map(|o| o["tag"].as_str().unwrap_or_default().to_string())
+            .collect();
+        assert!(!tags.iter().any(|t| t.starts_with("probe-")));
+        assert!(cfg["inbounds"].as_array().unwrap().len() >= 2);
+    }
+
     #[test]
     fn duplicate_names_get_unique_tags() {
         let a = parse_link("vless://uuid@a.com:443?security=tls#Same").unwrap();
@@ -959,6 +1120,7 @@ mod tests {
             settings: &Settings::default(),
             paths: &paths(),
             clash_secret: "s",
+            probe_base: None,
         })
         .unwrap();
 
@@ -976,6 +1138,7 @@ mod tests {
             settings: &Settings::default(),
             paths: &paths(),
             clash_secret: "s",
+            probe_base: None,
         })
         .unwrap();
 
@@ -998,6 +1161,7 @@ mod tests {
             settings: &Settings::default(),
             paths: &paths(),
             clash_secret: "s",
+            probe_base: None,
         })
         .unwrap();
         assert_eq!(map.tag_of(&node.id), Some("direct (2)"));
@@ -1194,18 +1358,26 @@ mod tests {
             }),
         ];
 
+        // Every case is checked twice: the probe lanes add inbounds, selectors
+        // and routing rules that the core has to accept just as readily.
         for (name, settings) in cases {
-            let (config, _) = generate(GenerateArgs {
-                nodes: &nodes,
-                active_id: Some(&nodes[0].id),
-                settings: &settings,
-                paths: &paths,
-                clash_secret: "secret",
-            })
-            .unwrap_or_else(|e| panic!("{name}: generation failed: {e}"));
+            for probe_base in [None, Some(17100u16)] {
+                let (config, _) = generate(GenerateArgs {
+                    nodes: &nodes,
+                    active_id: Some(&nodes[0].id),
+                    settings: &settings,
+                    paths: &paths,
+                    clash_secret: "secret",
+                    probe_base,
+                })
+                .unwrap_or_else(|e| panic!("{name}: generation failed: {e}"));
 
-            if let Some(complaint) = core_rejects(&config) {
-                panic!("{name}: the core rejected the generated config:\n{complaint}");
+                if let Some(complaint) = core_rejects(&config) {
+                    let lanes = if probe_base.is_some() { "with" } else { "without" };
+                    panic!(
+                        "{name} ({lanes} probe lanes): the core rejected the config:\n{complaint}"
+                    );
+                }
             }
         }
     }

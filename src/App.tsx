@@ -6,6 +6,7 @@ import { useI18n } from './hooks/useI18n';
 import { useUpdater } from './hooks/useUpdater';
 import { TitleBar } from './components/TitleBar';
 import { useStore } from './lib/store';
+import { AccountView } from './views/AccountView';
 import { HomeView } from './views/HomeView';
 import { LogsView } from './views/LogsView';
 import { NodesView } from './views/NodesView';
@@ -38,6 +39,8 @@ export function App() {
           <HomeView onManageNodes={() => setView('nodes')} />
         ) : view === 'nodes' ? (
           <NodesView />
+        ) : view === 'account' ? (
+          <AccountView />
         ) : view === 'routing' ? (
           <RoutingView />
         ) : view === 'settings' ? (

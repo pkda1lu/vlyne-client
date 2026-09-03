@@ -356,6 +356,113 @@ pub async fn restart_elevated(state: App<'_>) -> Result<()> {
 }
 
 // ---------------------------------------------------------------------------
+// Account and shop
+// ---------------------------------------------------------------------------
+
+/// Reach the service through the tunnel only when one is up.
+fn shop_detour(state: &App<'_>) -> Option<u16> {
+    (state.status().state == crate::model::ConnectionState::Connected)
+        .then(|| state.settings().inbound.socks_port)
+}
+
+#[tauri::command]
+pub fn account_info(state: App<'_>) -> crate::account::AccountInfo {
+    state.store.read(|d| (&d.account).into())
+}
+
+/// Exchange a one-time code from the bot for a device token.
+#[tauri::command]
+pub async fn account_link(state: App<'_>, code: String) -> Result<crate::account::AccountInfo> {
+    let base = state.store.read(|d| d.account.base().to_string());
+    let device = format!("Vlyne {} / Windows", env!("CARGO_PKG_VERSION"));
+
+    let linked = crate::account::pair(&base, code.trim(), &device, shop_detour(&state)).await?;
+
+    let info = state.store.write(|d| {
+        // Preserve a custom base across relinking; only the credential changes.
+        let api_base = d.account.api_base.clone();
+        d.account = crate::account::Account { api_base, ..linked };
+        (&d.account).into()
+    })?;
+
+    state.emit_data_changed();
+    Ok(info)
+}
+
+#[tauri::command]
+pub async fn account_unlink(state: App<'_>) -> Result<()> {
+    let account = state.store.read(|d| d.account.clone());
+
+    // Tell the service if we can, but never let its answer strand the user on
+    // a device they asked to sign out of.
+    if account.is_linked() {
+        if let Err(e) = crate::account::forget(&account, shop_detour(&state)).await {
+            tracing::warn!("the service did not confirm the unlink: {e}");
+        }
+    }
+
+    state.store.write(|d| {
+        let api_base = d.account.api_base.clone();
+        d.account = crate::account::Account {
+            api_base,
+            ..Default::default()
+        };
+    })?;
+    state.emit_data_changed();
+    Ok(())
+}
+
+/// Point the client at another deployment. Empty restores the default.
+#[tauri::command]
+pub async fn account_set_api_base(state: App<'_>, base: String) -> Result<()> {
+    state.store.write(|d| d.account.api_base = base.trim().to_string())?;
+    state.emit_data_changed();
+    Ok(())
+}
+
+/// Quota, packs and referral programme, passed through from the service.
+#[tauri::command]
+pub async fn account_state(state: App<'_>) -> Result<serde_json::Value> {
+    let account = state.store.read(|d| d.account.clone());
+    crate::account::state(&account, shop_detour(&state)).await
+}
+
+#[tauri::command]
+pub async fn account_quote(
+    state: App<'_>,
+    pack: String,
+    promo: Option<String>,
+) -> Result<serde_json::Value> {
+    let account = state.store.read(|d| d.account.clone());
+    crate::account::quote(&account, &pack, promo.as_deref(), shop_detour(&state)).await
+}
+
+/// Start a purchase. The answer carries the payment page for the browser.
+///
+/// Payment details are never entered here: the service hands back a URL and the
+/// user completes the payment with their bank or wallet, as they would from the
+/// Telegram mini app.
+#[tauri::command]
+pub async fn account_buy(
+    state: App<'_>,
+    pack: String,
+    method: String,
+    promo: Option<String>,
+) -> Result<serde_json::Value> {
+    let account = state.store.read(|d| d.account.clone());
+    crate::account::buy(&account, &pack, &method, promo.as_deref(), shop_detour(&state)).await
+}
+
+#[tauri::command]
+pub async fn account_check(
+    state: App<'_>,
+    order_id: serde_json::Value,
+) -> Result<serde_json::Value> {
+    let account = state.store.read(|d| d.account.clone());
+    crate::account::check(&account, &order_id, shop_detour(&state)).await
+}
+
+// ---------------------------------------------------------------------------
 // Diagnostics
 // ---------------------------------------------------------------------------
 
@@ -399,6 +506,7 @@ pub fn preview_config(state: App<'_>) -> Result<String> {
             cache_file: "<cache>".into(),
         },
         clash_secret: "<secret>",
+            probe_base: None,
     })?;
     Ok(serde_json::to_string_pretty(&config)?)
 }

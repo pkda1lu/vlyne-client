@@ -223,3 +223,71 @@ export interface IpcError {
   code: string;
   message: string;
 }
+
+// ---------------------------------------------------------------------------
+// Account and shop
+// ---------------------------------------------------------------------------
+
+export interface AccountInfo {
+  linked: boolean;
+  userId?: number | null;
+  linkedAt?: number | null;
+  apiBase: string;
+}
+
+export type PayMethod = 'yookassa' | 'cryptobot';
+
+/**
+ * The shop payload, passed through from the service untouched.
+ *
+ * Keys are snake_case because they come straight from the same API the
+ * Telegram mini app uses; renaming them here would mean editing two places
+ * every time the shop gains a field.
+ */
+export interface ShopState {
+  subscription: {
+    url?: string | null;
+    qr?: string | null;
+    unlimited: boolean;
+    used: number;
+    used_h: string;
+    limit: number;
+    limit_h: string;
+    left: number;
+    left_h: string;
+    percent: number;
+    extra: number;
+    extra_h: string;
+    free_gb: number;
+    period_end: string;
+  };
+  referral: {
+    code: string;
+    link?: string;
+    invited: number;
+    purchases: number;
+    earned_gb: number;
+    percent: number;
+    welcome_gb: number;
+    legacy_balance: number;
+  };
+  packs: { code: string; gb: number; price: number; bonus_gb: number }[];
+  user?: { id: number; name: string };
+  support?: string;
+  cryptobot?: boolean;
+}
+
+export interface BuyResult {
+  /** Set when a full-discount promo credited the traffic outright. */
+  free?: boolean;
+  order_id: number | string;
+  url?: string;
+  price?: number;
+}
+
+export interface CheckResult {
+  status?: string;
+  paid?: boolean;
+  credited?: boolean;
+  message?: string;
+}

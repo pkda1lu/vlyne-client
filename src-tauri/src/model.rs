@@ -474,9 +474,13 @@ pub struct InboundSettings {
     pub socks_port: u16,
     #[serde(default = "default_http_port")]
     pub http_port: u16,
-    /// Clash API port, used for traffic statistics and latency probes.
+    /// Clash API port, used for traffic statistics and selector switching.
     #[serde(default = "default_clash_port")]
     pub clash_port: u16,
+    /// First of a small run of loopback ports used to measure node latency.
+    /// The core reserves one per concurrent probe.
+    #[serde(default = "default_probe_port")]
+    pub probe_port: u16,
     #[serde(default)]
     pub allow_lan: bool,
 }
@@ -489,6 +493,9 @@ fn default_socks_port() -> u16 {
 fn default_http_port() -> u16 {
     17081
 }
+fn default_probe_port() -> u16 {
+    17100
+}
 fn default_clash_port() -> u16 {
     17090
 }
@@ -499,6 +506,7 @@ impl Default for InboundSettings {
             socks_port: default_socks_port(),
             http_port: default_http_port(),
             clash_port: default_clash_port(),
+            probe_port: default_probe_port(),
             allow_lan: false,
         }
     }
@@ -703,6 +711,10 @@ pub struct AppData {
     pub active_node_id: Option<String>,
     #[serde(default)]
     pub settings: Settings,
+    /// Link to the Vlyne service. Holds a credential, so it is deliberately
+    /// kept out of `Settings`, which the config preview renders verbatim.
+    #[serde(default)]
+    pub account: crate::account::Account,
 }
 
 // ---------------------------------------------------------------------------

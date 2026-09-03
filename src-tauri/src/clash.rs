@@ -21,12 +21,6 @@ pub struct TrafficSample {
     pub down: u64,
 }
 
-#[derive(Debug, Deserialize)]
-struct DelayResponse {
-    #[serde(default)]
-    delay: u32,
-}
-
 #[derive(Debug, Clone)]
 pub struct ClashClient {
     base: String,
@@ -91,37 +85,6 @@ impl ClashClient {
         Ok(proxy.now)
     }
 
-    /// Measure latency through one outbound by fetching `url` over it.
-    ///
-    /// Returns `None` when the node is unreachable, which the UI shows as a
-    /// timeout rather than an error.
-    pub async fn delay(&self, tag: &str, url: &str, timeout_ms: u32) -> Result<Option<u32>> {
-        let response = self
-            .http
-            .get(format!("{}/proxies/{}/delay", self.base, urlencode(tag)))
-            .bearer_auth(&self.secret)
-            .query(&[
-                ("url", url),
-                ("timeout", &timeout_ms.to_string()),
-            ])
-            // Give the core a little longer than the probe itself, so a slow
-            // node reads as slow rather than as a client-side failure.
-            .timeout(Duration::from_millis(timeout_ms as u64 + 3000))
-            .send()
-            .await
-            .map_err(|e| Error::Other(format!("latency probe failed: {e}")))?;
-
-        if !response.status().is_success() {
-            return Ok(None);
-        }
-
-        let body: DelayResponse = response
-            .json()
-            .await
-            .map_err(|e| Error::Other(e.to_string()))?;
-        Ok((body.delay > 0).then_some(body.delay))
-    }
-
     /// Stream traffic samples until the connection drops or `stop` is dropped.
     ///
     /// sing-box emits one JSON object per line over a chunked response, so the
@@ -168,6 +131,32 @@ impl ClashClient {
 
 fn urlencode(s: &str) -> String {
     percent_encoding::utf8_percent_encode(s, percent_encoding::NON_ALPHANUMERIC).to_string()
+}
+
+/// Measure how long the probe URL takes through one of the core's probe lanes.
+///
+/// The core's own delay endpoint ignores the URL it is given and always reaches
+/// for a Google host, which is exactly the sort of address this application
+/// exists to work around. Driving the request ourselves is the only way to
+/// honour the user's configured probe address and timeout.
+///
+/// The proxy is `socks5://` rather than `socks5h://` on purpose: resolving the
+/// name locally keeps the measurement about the node under test, instead of
+/// dragging in whatever the currently selected node makes of DNS.
+pub async fn http_latency(port: u16, url: &str, timeout_ms: u32) -> Option<u32> {
+    let client = reqwest::Client::builder()
+        .proxy(reqwest::Proxy::all(format!("socks5://127.0.0.1:{port}")).ok()?)
+        .timeout(Duration::from_millis(timeout_ms as u64))
+        .build()
+        .ok()?;
+
+    let started = tokio::time::Instant::now();
+    let response = client.get(url).send().await.ok()?;
+    if !(response.status().is_success() || response.status().is_redirection()) {
+        return None;
+    }
+
+    Some(started.elapsed().as_millis().min(u32::MAX as u128) as u32)
 }
 
 /// Bare TCP handshake latency, used when the core is not running.

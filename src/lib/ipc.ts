@@ -4,7 +4,12 @@ import { invoke } from '@tauri-apps/api/core';
 import { listen, type UnlistenFn } from '@tauri-apps/api/event';
 
 import type {
+  AccountInfo,
   AppData,
+  BuyResult,
+  CheckResult,
+  PayMethod,
+  ShopState,
   Bootstrap,
   IpcError,
   LogLine,
@@ -66,6 +71,18 @@ export const api = {
   /** Resolves to `true` when the app must be relaunched as administrator. */
   setMode: (mode: TunnelMode) => invoke<boolean>('set_mode', { mode }),
   restartElevated: () => invoke<void>('restart_elevated'),
+
+  accountInfo: () => invoke<AccountInfo>('account_info'),
+  accountLink: (code: string) => invoke<AccountInfo>('account_link', { code }),
+  accountUnlink: () => invoke<void>('account_unlink'),
+  accountSetApiBase: (base: string) => invoke<void>('account_set_api_base', { base }),
+  accountState: () => invoke<ShopState>('account_state'),
+  accountQuote: (pack: string, promo?: string) =>
+    invoke<{ price: number; percent: number }>('account_quote', { pack, promo: promo ?? null }),
+  accountBuy: (pack: string, method: PayMethod, promo?: string) =>
+    invoke<BuyResult>('account_buy', { pack, method, promo: promo ?? null }),
+  accountCheck: (orderId: number | string) =>
+    invoke<CheckResult>('account_check', { orderId }),
 
   getLogs: () => invoke<LogLine[]>('get_logs'),
   clearLogs: () => invoke<void>('clear_logs'),
