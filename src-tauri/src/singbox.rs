@@ -1587,6 +1587,10 @@ mod tests {
             "hy2://pass@f.com:443?sni=f.com&obfs-password=x#HY",
             "tuic://3f9a1c22-7b4e-4d18-9a56-0e1f2b3c4d5e:pass@g.com:443?sni=g.com#TUIC",
             "anytls://pass@h.com:443?sni=h.com#ANY",
+            // XHTTP is the one transport the core only has because it is the
+            // `lx` fork. Upstream rejects the whole configuration over it, so
+            // this case is what pins the choice of core.
+            "vless://3f9a1c22-7b4e-4d18-9a56-0e1f2b3c4d5e@i.com:443?security=tls&type=xhttp&path=/x&host=i.com&mode=packet-up#XHTTP",
         ]
         .iter()
         .map(|l| parse_link(l).unwrap())

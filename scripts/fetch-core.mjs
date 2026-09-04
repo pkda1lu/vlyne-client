@@ -11,7 +11,7 @@
  */
 
 import { createWriteStream } from 'node:fs';
-import { mkdir, rm, readdir, rename, stat, writeFile } from 'node:fs/promises';
+import { mkdir, readFile, rm, readdir, rename, stat, writeFile } from 'node:fs/promises';
 import { createHash } from 'node:crypto';
 import { execFile } from 'node:child_process';
 import { promisify } from 'node:util';
@@ -22,7 +22,18 @@ import { pipeline } from 'node:stream/promises';
 const execFileAsync = promisify(execFile);
 
 // Pin every version. "latest" would make builds irreproducible.
-const SING_BOX_VERSION = '1.14.0';
+//
+// The core is the `lx` fork rather than upstream sing-box: XHTTP is an Xray
+// transport that upstream does not implement, and a subscription carrying one
+// xhttp node makes upstream reject the whole configuration, not just that
+// node. Both the archive and the binary inside it are pinned by hash as well
+// as by name, since a fork's release can be re-cut under the same tag.
+const SING_BOX_REPO = 'Leadaxe/sing-box-lx';
+const SING_BOX_VERSION = '1.14.0-lx.30';
+const SING_BOX_ARCHIVE_SHA256 =
+  '8b173637d0006526ad654ff67c7a811d2001c39f4efd4a09a06fb398668317a3';
+const SING_BOX_EXE_SHA256 =
+  '8d8ddb2d0eac7a7234f1dcc3a838297a993bac6840a290eae44311f51b2ec8ac';
 const WINTUN_VERSION = '0.14.1';
 
 const ROOT = path.resolve(import.meta.dirname, '..');
@@ -105,16 +116,36 @@ async function locate(dir, filename) {
   return null;
 }
 
+async function sha256(file) {
+  const hash = createHash('sha256');
+  hash.update(await readFile(file));
+  return hash.digest('hex');
+}
+
 async function fetchSingBox() {
   const target = path.join(BIN_DIR, 'sing-box.exe');
-  if (!force && (await exists(target))) {
+
+  // A binary that is present but is not the pinned build gets replaced rather
+  // than kept. Skipping on presence alone is how a hand-dropped core survived
+  // here for months while CI shipped a different one — a divergence nothing
+  // catches until a config the shipped core rejects reaches a user.
+  if (!force && (await exists(target)) && (await sha256(target)) === SING_BOX_EXE_SHA256) {
     console.log('  sing-box.exe already present');
     return;
   }
 
   const name = `sing-box-${SING_BOX_VERSION}-windows-amd64`;
-  const url = `https://github.com/SagerNet/sing-box/releases/download/v${SING_BOX_VERSION}/${name}.zip`;
+  const url = `https://github.com/${SING_BOX_REPO}/releases/download/v${SING_BOX_VERSION}/${name}.zip`;
   const archive = await download(url, path.join(TMP_DIR, `${name}.zip`));
+
+  const digest = await sha256(archive);
+  if (digest !== SING_BOX_ARCHIVE_SHA256) {
+    throw new Error(
+      `${name}.zip does not match the pinned hash
+  expected ${SING_BOX_ARCHIVE_SHA256}
+  got      ${digest}`,
+    );
+  }
 
   await extract(archive, TMP_DIR);
   const found = await locate(TMP_DIR, 'sing-box.exe');
@@ -164,7 +195,7 @@ async function writeManifest() {
       if (!entry.isFile() || entry.name === '.gitkeep' || entry.name === 'manifest.json') continue;
       const full = path.join(dir, entry.name);
       const hash = createHash('sha256');
-      hash.update(await (await import('node:fs/promises')).readFile(full));
+      hash.update(await readFile(full));
       files[path.relative(ROOT, full).replaceAll('\\', '/')] = hash.digest('hex').slice(0, 16);
     }
   }
