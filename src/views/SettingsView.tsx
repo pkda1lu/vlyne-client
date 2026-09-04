@@ -121,6 +121,39 @@ export function SettingsView() {
         </div>
       </Card>
 
+      <Card title={t('settings.subscriptions')}>
+        <Switch
+          label={t('settings.subsCheckOnStart')}
+          hint={t('settings.subsCheckOnStartHint')}
+          checked={settings.subscriptions.checkOnStart}
+          onChange={(v) => patch((d) => (d.subscriptions.checkOnStart = v))}
+        />
+        <Switch
+          label={t('settings.subsAutoUpdate')}
+          hint={t('settings.subsAutoUpdateHint')}
+          checked={settings.subscriptions.autoUpdate}
+          onChange={(v) => patch((d) => (d.subscriptions.autoUpdate = v))}
+        />
+
+        {/* The interval only means anything while the timer is running. */}
+        {settings.subscriptions.autoUpdate && (
+          <Field label={t('settings.subsInterval')} hint={t('settings.subsIntervalHint')}>
+            <CommitInput
+              type="number"
+              value={String(settings.subscriptions.updateIntervalHours)}
+              onCommit={(v) => {
+                const hours = Number(v);
+                // The same bounds the core clamps to, so the field never
+                // shows a number the scheduler would quietly ignore.
+                if (Number.isInteger(hours) && hours >= 1 && hours <= 168) {
+                  patch((d) => (d.subscriptions.updateIntervalHours = hours));
+                }
+              }}
+            />
+          </Field>
+        )}
+      </Card>
+
       <Card title={t('settings.connection')}>
         <div className="grid-2">
           <Field label={t('settings.socksPort')}>

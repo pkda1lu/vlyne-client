@@ -56,7 +56,11 @@
   --shadow-3: none;
 
   --titlebar-h: 40px;
-  --sidebar-w: 232px;
+  /* The rail is a column of icons until it is hovered, when it widens over
+     the view rather than pushing it. */
+  --sidebar-w: 56px;
+  --sidebar-open-w: 218px;
+  --servers-w: 340px;
 
   --ease: cubic-bezier(0.22, 0.61, 0.36, 1);
   --fast: 100ms;
@@ -246,16 +250,34 @@ p {
   grid-area: sidebar;
   display: flex;
   flex-direction: column;
-  padding: 12px 10px;
+  padding: 12px 8px;
   gap: 2px;
   border-right: 2px solid var(--edge);
+  /* The track stays at the collapsed width; the rail itself overflows on
+     top of the main column, so opening it never reflows the view. */
+  width: var(--sidebar-w);
+  overflow: hidden;
+  background: var(--bg);
+  position: relative;
+  z-index: 20;
+  transition: width var(--normal) var(--ease);
+}
+
+/* Keyboard travel opens it too, otherwise tabbing through the rail would
+   move a focus ring between unlabelled icons. */
+.sidebar:hover,
+.sidebar:focus-within {
+  width: var(--sidebar-open-w);
+  border-right-color: var(--edge-strong);
 }
 
 .nav-item {
   display: flex;
   align-items: center;
   gap: 11px;
-  padding: 10px 12px;
+  padding: 10px 11px;
+  width: var(--sidebar-open-w);
+  flex: none;
   color: var(--ink-3);
   font-weight: 500;
   font-size: 13px;
@@ -287,21 +309,40 @@ p {
   background: var(--accent);
 }
 
-.nav-item__badge {
-  margin-left: auto;
-  font-size: 11px;
-  font-variant-numeric: tabular-nums;
-  color: var(--ink-3);
+.nav-item__icon {
+  flex: none;
+}
+
+/* Collapsed, the labels are still laid out — they are simply faded out, so
+   the row keeps its height and nothing jumps as the rail opens. */
+.nav-item__label {
+  white-space: nowrap;
+  opacity: 0;
+  transition: opacity var(--fast) var(--ease);
+}
+
+.sidebar:hover .nav-item__label,
+.sidebar:focus-within .nav-item__label {
+  opacity: 1;
 }
 
 .sidebar__footer {
   margin-top: auto;
-  padding: 10px 12px 4px;
+  padding: 10px 11px 4px;
+  width: var(--sidebar-open-w);
   font-size: 11px;
   color: var(--ink-4);
   display: flex;
   flex-direction: column;
   gap: 3px;
+  white-space: nowrap;
+  opacity: 0;
+  transition: opacity var(--fast) var(--ease);
+}
+
+.sidebar:hover .sidebar__footer,
+.sidebar:focus-within .sidebar__footer {
+  opacity: 1;
 }
 
 /* Main --------------------------------------------------------------------- */
@@ -310,6 +351,71 @@ p {
   grid-area: main;
   overflow-y: auto;
   padding: 24px 28px 32px;
+  min-width: 0;
+}
+
+/* The connect view brings its own columns and its own scrolling. */
+.main--flush {
+  overflow: hidden;
+  padding: 0;
+}
+
+/* Workspace: servers beside the tunnel ------------------------------------- */
+
+.workspace {
+  display: grid;
+  grid-template-columns: var(--servers-w) minmax(0, 1fr);
+  height: 100%;
+  min-height: 0;
+}
+
+.workspace__servers {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  border-right: 2px solid var(--edge);
+}
+
+.workspace__main {
+  overflow-y: auto;
+  min-width: 0;
+  padding: 24px 28px 32px;
+}
+
+/* Narrow windows cannot carry both columns: the servers stack on top and
+   the two share one scroll rather than fighting over the height. */
+@media (max-width: 900px) {
+  /* The frame scrolls instead of the columns, so neither section has to be
+     given a share of a height there is no longer enough of. */
+  .main--flush {
+    overflow-y: auto;
+  }
+
+  .workspace {
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-rows: auto auto;
+    height: auto;
+    min-height: 100%;
+  }
+
+  .workspace__servers {
+    height: auto;
+    border-right: none;
+    border-bottom: 2px solid var(--edge);
+  }
+
+  .workspace__servers .servers {
+    height: auto;
+  }
+
+  .workspace__servers .servers__list {
+    flex: none;
+    overflow: visible;
+  }
+
+  .workspace__main {
+    overflow: visible;
+  }
 }
 
 .view-header {
@@ -760,6 +866,55 @@ p {
   color: var(--accent);
 }
 
+/* Servers panel ------------------------------------------------------------ */
+
+.servers {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  height: 100%;
+}
+
+.servers__header {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 20px 16px 12px;
+  border-bottom: 2px solid var(--edge);
+}
+
+.servers__heading {
+  min-width: 0;
+}
+
+.servers__title {
+  font-family: var(--heading);
+  font-size: 18px;
+  font-weight: 600;
+  line-height: 1.1;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.servers__meta {
+  font-size: 11.5px;
+  color: var(--ink-4);
+  margin-top: 3px;
+}
+
+/* The list scrolls on its own so the tunnel column never moves with it. */
+.servers__list {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  padding: 14px 16px 24px;
+}
+
+.servers__list > .node:first-child {
+  margin-bottom: 16px;
+}
+
 /* Node list ---------------------------------------------------------------- */
 
 .group {
@@ -769,8 +924,9 @@ p {
 .group__header {
   display: flex;
   align-items: center;
-  gap: 10px;
-  padding: 0 4px 9px;
+  flex-wrap: wrap;
+  gap: 6px 10px;
+  padding: 0 2px 9px;
 }
 
 .group__name {
@@ -791,11 +947,11 @@ p {
 
 .node {
   display: grid;
-  grid-template-columns: auto 1fr auto auto;
+  grid-template-columns: auto minmax(0, 1fr) auto auto;
   align-items: center;
-  gap: 12px;
+  gap: 10px;
   width: 100%;
-  padding: 11px 14px;
+  padding: 10px 11px;
   border-radius: var(--radius);
   border: 1px solid transparent;
   background: var(--layer-1);
@@ -821,8 +977,9 @@ p {
 }
 
 .node__region {
-  width: 34px;
-  height: 34px;
+  width: 30px;
+  height: 30px;
+  flex: none;
   display: grid;
   place-items: center;
   border-radius: 10px;

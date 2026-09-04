@@ -97,7 +97,6 @@ export interface Subscription {
   name: string;
   url: string;
   enabled: boolean;
-  updateIntervalHours: number;
   lastUpdatedAt?: number | null;
   lastError?: string | null;
   usage?: SubscriptionUsage | null;
@@ -132,6 +131,13 @@ export interface Settings {
     closeToTray: boolean;
     autoConnect: boolean;
     checkUpdates: boolean;
+  };
+  subscriptions: {
+    /** Re-fetch every subscription once its interval has elapsed. */
+    autoUpdate: boolean;
+    updateIntervalHours: number;
+    /** Check them all shortly after launch, whatever the interval says. */
+    checkOnStart: boolean;
   };
   mode: TunnelMode;
   inbound: {

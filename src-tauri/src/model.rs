@@ -363,9 +363,6 @@ pub struct Subscription {
     pub url: String,
     #[serde(default = "default_true")]
     pub enabled: bool,
-    /// Auto-update interval in hours. Zero disables auto-update.
-    #[serde(default)]
-    pub update_interval_hours: u32,
     #[serde(default)]
     pub last_updated_at: Option<i64>,
     #[serde(default)]
@@ -452,6 +449,53 @@ pub struct GeneralSettings {
 
 fn default_language() -> String {
     "ru".into()
+}
+
+/// How subscriptions keep themselves current.
+///
+/// The cadence is one setting for the whole app rather than one per
+/// subscription: a user who wants their servers fresh wants all of them
+/// fresh, and a per-source interval was a knob nobody could see.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct SubscriptionSettings {
+    /// Re-fetch every subscription once its interval has elapsed.
+    #[serde(default = "default_true")]
+    pub auto_update: bool,
+    /// Hours between refreshes. Clamped on use, so a hand-edited profile
+    /// cannot ask for a refresh every second.
+    #[serde(default = "default_update_interval_hours")]
+    pub update_interval_hours: u32,
+    /// Check every subscription shortly after launch, whatever the interval
+    /// says. This is what catches a plan that expired while the app was shut.
+    #[serde(default = "default_true")]
+    pub check_on_start: bool,
+}
+
+pub const MIN_UPDATE_INTERVAL_HOURS: u32 = 1;
+pub const MAX_UPDATE_INTERVAL_HOURS: u32 = 24 * 7;
+
+fn default_update_interval_hours() -> u32 {
+    12
+}
+
+impl Default for SubscriptionSettings {
+    fn default() -> Self {
+        Self {
+            auto_update: true,
+            update_interval_hours: default_update_interval_hours(),
+            check_on_start: true,
+        }
+    }
+}
+
+impl SubscriptionSettings {
+    /// The interval actually used, in seconds.
+    pub fn interval_seconds(&self) -> i64 {
+        self.update_interval_hours
+            .clamp(MIN_UPDATE_INTERVAL_HOURS, MAX_UPDATE_INTERVAL_HOURS) as i64
+            * 3600
+    }
 }
 
 impl Default for GeneralSettings {
@@ -681,6 +725,8 @@ pub struct Settings {
     #[serde(default)]
     pub general: GeneralSettings,
     #[serde(default)]
+    pub subscriptions: SubscriptionSettings,
+    #[serde(default)]
     pub mode: TunnelModeSetting,
     #[serde(default)]
     pub inbound: InboundSettings,
@@ -834,5 +880,24 @@ mod tests {
         assert_eq!(data.settings.mode.0, TunnelMode::SystemProxy);
         assert_eq!(data.settings.inbound.socks_port, 17080);
         assert!(data.nodes.is_empty());
+
+        // Subscriptions kept themselves current before the setting existed,
+        // so a profile predating it must come back updating, not idle.
+        assert!(data.settings.subscriptions.auto_update);
+        assert!(data.settings.subscriptions.check_on_start);
+        assert_eq!(data.settings.subscriptions.update_interval_hours, 12);
+    }
+
+    /// A hand-edited profile must not be able to ask for a refresh loop.
+    #[test]
+    fn the_update_interval_is_clamped() {
+        let mut settings = SubscriptionSettings::default();
+        assert_eq!(settings.interval_seconds(), 12 * 3600);
+
+        settings.update_interval_hours = 0;
+        assert_eq!(settings.interval_seconds(), 3600);
+
+        settings.update_interval_hours = 10_000;
+        assert_eq!(settings.interval_seconds(), 24 * 7 * 3600);
     }
 }

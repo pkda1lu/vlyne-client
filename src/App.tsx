@@ -9,7 +9,6 @@ import { useStore } from './lib/store';
 import { AccountView } from './views/AccountView';
 import { HomeView } from './views/HomeView';
 import { LogsView } from './views/LogsView';
-import { NodesView } from './views/NodesView';
 import { RoutingView } from './views/RoutingView';
 import { SettingsView } from './views/SettingsView';
 
@@ -33,12 +32,11 @@ export function App() {
       <TitleBar />
       <Sidebar view={view} onNavigate={setView} />
 
-      <main className="main">
+      {/* Home lays out its own two columns, so it gets the frame unpadded. */}
+      <main className={`main${view === 'home' ? ' main--flush' : ''}`}>
         {/* Nothing can render meaningfully before the first snapshot arrives. */}
         {!ready ? null : view === 'home' ? (
-          <HomeView onManageNodes={() => setView('nodes')} />
-        ) : view === 'nodes' ? (
-          <NodesView />
+          <HomeView />
         ) : view === 'account' ? (
           <AccountView />
         ) : view === 'routing' ? (

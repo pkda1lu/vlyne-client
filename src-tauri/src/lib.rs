@@ -151,63 +151,61 @@ pub fn run() {
         });
 }
 
-/// Refresh subscriptions whose interval has elapsed.
+/// Keep subscriptions current in the background.
+///
+/// One timer serves both halves of the setting: the check at launch, which
+/// catches a plan that ran out while the app was closed, and the periodic
+/// update on the configured interval. The tick is deliberately much shorter
+/// than any interval so that shortening the interval takes effect without a
+/// restart.
 fn spawn_subscription_scheduler(state: Arc<AppState>) {
+    const TICK: std::time::Duration = std::time::Duration::from_secs(300);
+
     tauri::async_runtime::spawn(async move {
         // A short initial delay keeps startup responsive.
         tokio::time::sleep(std::time::Duration::from_secs(20)).await;
 
+        if state.settings().subscriptions.check_on_start {
+            refresh_due(&state, true).await;
+        }
+
         loop {
-            let now = chrono::Utc::now().timestamp();
-            let due: Vec<String> = state.store.read(|d| {
-                d.subscriptions
-                    .iter()
-                    .filter(|s| s.enabled && s.update_interval_hours > 0)
-                    .filter(|s| match s.last_updated_at {
-                        Some(at) => now - at >= (s.update_interval_hours as i64) * 3600,
-                        None => true,
-                    })
-                    .map(|s| s.id.clone())
-                    .collect()
-            });
+            tokio::time::sleep(TICK).await;
 
-            for id in due {
-                if let Err(e) = refresh_one(&state, &id).await {
-                    tracing::warn!("scheduled refresh of {id} failed: {e}");
-                }
+            let settings = state.settings().subscriptions;
+            if settings.auto_update {
+                refresh_due(&state, false).await;
             }
-
-            tokio::time::sleep(std::time::Duration::from_secs(900)).await;
         }
     });
 }
 
-async fn refresh_one(state: &Arc<AppState>, id: &str) -> error::Result<()> {
-    let url = state
-        .store
-        .read(|d| d.subscriptions.iter().find(|s| s.id == id).map(|s| s.url.clone()))
-        .ok_or_else(|| error::Error::Subscription("subscription vanished".into()))?;
-
-    let connected = state.status().state == model::ConnectionState::Connected;
-    let via_proxy = connected.then(|| state.settings().inbound.socks_port);
-    let result = subs::fetch(&url, via_proxy).await?;
+/// Refresh every enabled subscription that is due, or all of them when `all`.
+async fn refresh_due(state: &Arc<AppState>, all: bool) {
     let now = chrono::Utc::now().timestamp();
+    let interval = state.settings().subscriptions.interval_seconds();
 
-    state.store.write(|d| {
-        let merged = subs::merge_refreshed(&d.nodes, result.nodes, id);
-        let count = merged.len();
-        d.nodes.retain(|n| n.subscription_id.as_deref() != Some(id));
-        d.nodes.extend(merged);
+    let due: Vec<String> = state.store.read(|d| {
+        d.subscriptions
+            .iter()
+            .filter(|s| s.enabled)
+            .filter(|s| {
+                all || match s.last_updated_at {
+                    Some(at) => now - at >= interval,
+                    None => true,
+                }
+            })
+            .map(|s| s.id.clone())
+            .collect()
+    });
 
-        if let Some(s) = d.subscriptions.iter_mut().find(|s| s.id == id) {
-            s.node_count = count;
-            s.last_updated_at = Some(now);
-            s.last_error = None;
+    for id in due {
+        // The error is already recorded on the subscription for the UI to
+        // show; the log line is for a bug report.
+        if let Err(e) = commands::refresh_now(state, &id).await {
+            tracing::warn!("scheduled refresh of {id} failed: {e}");
         }
-    })?;
-
-    state.emit_data_changed();
-    Ok(())
+    }
 }
 
 fn init_logging(app: &tauri::AppHandle) {

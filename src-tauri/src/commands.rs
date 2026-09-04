@@ -177,7 +177,6 @@ pub async fn add_subscription(state: App<'_>, url: String, name: Option<String>)
         name: name.unwrap_or_else(|| "…".into()),
         url,
         enabled: true,
-        update_interval_hours: 12,
         last_updated_at: None,
         last_error: None,
         usage: None,
@@ -195,6 +194,15 @@ pub async fn add_subscription(state: App<'_>, url: String, name: Option<String>)
 
 #[tauri::command]
 pub async fn refresh_subscription(state: App<'_>, id: String) -> Result<usize> {
+    refresh_now(&state, &id).await
+}
+
+/// Re-fetch one subscription and fold the result back into the store.
+///
+/// The scheduler runs the same path as the button, so a timed refresh records
+/// the same errors and adopts the same panel title as a manual one.
+pub async fn refresh_now(state: &Arc<AppState>, id: &str) -> Result<usize> {
+    let id = id.to_string();
     let (url, connected) = {
         let url = state
             .store

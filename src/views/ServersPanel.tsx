@@ -28,7 +28,19 @@ import { useGroupedNodes, useStore } from '../lib/store';
 import { isNodeUsable } from '../lib/types';
 import type { Node, Subscription } from '../lib/types';
 
-export function NodesView() {
+/**
+ * Every configured server, as the left column of the connect view.
+ *
+ * The add dialog is opened from here and from the connect side, so whether
+ * it is up lives with the parent rather than in this panel.
+ */
+export function ServersPanel({
+  adding,
+  onAddingChange,
+}: {
+  adding: boolean;
+  onAddingChange: (adding: boolean) => void;
+}) {
   const { t, locale } = useI18n();
   const groups = useGroupedNodes();
   const data = useStore((s) => s.data);
@@ -45,7 +57,6 @@ export function NodesView() {
   const autoNode =
     selectedId == null ? (data?.nodes.find((n) => n.id === activeOutboundId) ?? null) : null;
 
-  const [adding, setAdding] = useState(false);
   const [pendingDelete, setPendingDelete] = useState<Subscription | null>(null);
   const [keepNodes, setKeepNodes] = useState(false);
   const [testing, setTesting] = useState(false);
@@ -85,120 +96,131 @@ export function NodesView() {
   };
 
   return (
-    <div className="stack stack--lg">
-      <div className="view-header">
-        <div>
-          <h1 className="view-title">{t('nodes.title')}</h1>
-          <p className="view-subtitle">
+    <div className="servers">
+      <div className="servers__header">
+        <div className="servers__heading">
+          <h2 className="servers__title">{t('nodes.title')}</h2>
+          <p className="servers__meta">
             {t('nodes.subtitle', { count: nodeCount, groups: groups.length })}
           </p>
         </div>
 
         <div className="row">
-          <button className="btn" onClick={testAll} disabled={testing || nodeCount === 0}>
+          <button
+            className="btn btn--icon"
+            onClick={testAll}
+            disabled={testing || nodeCount === 0}
+            title={testing ? t('nodes.testing') : t('nodes.testAll')}
+            aria-label={t('nodes.testAll')}
+          >
             <Gauge size={15} className={testing ? 'spin' : undefined} />
-            {testing ? t('nodes.testing') : t('nodes.testAll')}
           </button>
-          <button className="btn btn--primary" onClick={() => setAdding(true)}>
+          <button
+            className="btn btn--primary btn--icon"
+            onClick={() => onAddingChange(true)}
+            title={t('nodes.add')}
+            aria-label={t('nodes.add')}
+          >
             <Plus size={15} />
-            {t('nodes.add')}
           </button>
         </div>
       </div>
 
-      {nodeCount > 0 && (
-        <button
-          className={`node${selectedId == null ? ' node--active' : ''}`}
-          onClick={async () => {
-            try {
-              await api.selectAuto();
-            } catch (error) {
-              toastError(error);
+      <div className="servers__list">
+        {nodeCount > 0 && (
+          <button
+            className={`node${selectedId == null ? ' node--active' : ''}`}
+            onClick={async () => {
+              try {
+                await api.selectAuto();
+              } catch (error) {
+                toastError(error);
+              }
+            }}
+          >
+            <span className="node__region">
+              <Wand2 size={15} />
+            </span>
+            <span className="node__body">
+              <span className="node__name">{t('nodes.auto')}</span>
+              <span className="node__meta">{t('nodes.autoHint')}</span>
+            </span>
+            <span className="node__latency">
+              {autoNode ? autoNode.name : t('nodes.untested')}
+            </span>
+            <span />
+          </button>
+        )}
+
+        {nodeCount === 0 ? (
+          <Empty
+            icon={<Server size={22} />}
+            title={t('nodes.empty')}
+            hint={t('nodes.emptyHint')}
+            action={
+              <button className="btn btn--primary" onClick={() => onAddingChange(true)}>
+                <Plus size={15} />
+                {t('nodes.add')}
+              </button>
             }
-          }}
-        >
-          <span className="node__region">
-            <Wand2 size={15} />
-          </span>
-          <span className="node__body">
-            <span className="node__name">{t('nodes.auto')}</span>
-            <span className="node__meta">{t('nodes.autoHint')}</span>
-          </span>
-          <span className="node__latency">
-            {autoNode ? autoNode.name : t('nodes.untested')}
-          </span>
-          <span />
-        </button>
-      )}
+          />
+        ) : (
+          groups.map((group) => (
+            <section className="group" key={group.subscription?.id ?? 'manual'}>
+              <header className="group__header">
+                <span className="group__name">
+                  {group.subscription?.name ?? t('nodes.manual')}
+                </span>
+                <span className="group__meta">
+                  {t('nodes.nodesCount', { count: group.nodes.length })}
+                </span>
 
-      {nodeCount === 0 ? (
-        <Empty
-          icon={<Server size={22} />}
-          title={t('nodes.empty')}
-          hint={t('nodes.emptyHint')}
-          action={
-            <button className="btn btn--primary" onClick={() => setAdding(true)}>
-              <Plus size={15} />
-              {t('nodes.add')}
-            </button>
-          }
-        />
-      ) : (
-        groups.map((group) => (
-          <section className="group" key={group.subscription?.id ?? 'manual'}>
-            <header className="group__header">
-              <span className="group__name">
-                {group.subscription?.name ?? t('nodes.manual')}
-              </span>
-              <span className="group__meta">
-                {t('nodes.nodesCount', { count: group.nodes.length })}
-              </span>
+                {group.subscription && (
+                  <SubscriptionMeta subscription={group.subscription} locale={locale} />
+                )}
 
-              {group.subscription && (
-                <SubscriptionMeta subscription={group.subscription} locale={locale} />
-              )}
+                {group.subscription && (
+                  <div className="group__actions">
+                    <button
+                      className="btn btn--ghost btn--icon"
+                      title={t('nodes.refresh')}
+                      onClick={() => refresh(group.subscription!)}
+                      disabled={refreshingId === group.subscription.id}
+                    >
+                      <RefreshCw
+                        size={14}
+                        className={refreshingId === group.subscription.id ? 'spin' : undefined}
+                      />
+                    </button>
+                    <button
+                      className="btn btn--ghost btn--icon"
+                      title={t('nodes.deleteSubscription')}
+                      onClick={() => {
+                        setKeepNodes(false);
+                        setPendingDelete(group.subscription);
+                      }}
+                    >
+                      <Trash2 size={14} />
+                    </button>
+                  </div>
+                )}
+              </header>
 
-              {group.subscription && (
-                <div className="group__actions">
-                  <button
-                    className="btn btn--ghost btn--icon"
-                    title={t('nodes.refresh')}
-                    onClick={() => refresh(group.subscription!)}
-                    disabled={refreshingId === group.subscription.id}
-                  >
-                    <RefreshCw
-                      size={14}
-                      className={refreshingId === group.subscription.id ? 'spin' : undefined}
-                    />
-                  </button>
-                  <button
-                    className="btn btn--ghost btn--icon"
-                    title={t('nodes.deleteSubscription')}
-                    onClick={() => {
-                      setKeepNodes(false);
-                      setPendingDelete(group.subscription);
-                    }}
-                  >
-                    <Trash2 size={14} />
-                  </button>
-                </div>
-              )}
-            </header>
+              {group.nodes.map((node) => (
+                <NodeRow
+                  key={node.id}
+                  node={node}
+                  selected={node.id === selectedId}
+                  inUse={node.id === activeOutboundId}
+                  onSelect={() => select(node)}
+                />
+              ))}
+            </section>
+          ))
+        )}
+      </div>
 
-            {group.nodes.map((node) => (
-              <NodeRow
-                key={node.id}
-                node={node}
-                selected={node.id === selectedId}
-                inUse={node.id === activeOutboundId}
-                onSelect={() => select(node)}
-              />
-            ))}
-          </section>
-        ))
-      )}
-
-      {adding && <AddDialog onClose={() => setAdding(false)} />}
+      {adding && <AddDialog onClose={() => onAddingChange(false)} />}
 
       {pendingDelete && (
         <Confirm

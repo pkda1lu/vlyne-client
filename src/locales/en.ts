@@ -4,7 +4,6 @@ import type { ru } from './ru';
 export const en: typeof ru = {
   nav: {
     home: 'Connection',
-    nodes: 'Servers',
     account: 'Subscription',
     routing: 'Routing',
     settings: 'Settings',
@@ -182,6 +181,15 @@ export const en: typeof ru = {
     closeToTray: 'Closing the window minimises to the tray',
     autoConnect: 'Connect on launch',
     checkUpdates: 'Check for updates',
+
+    subscriptions: 'Subscriptions',
+    subsCheckOnStart: 'Check subscriptions at launch',
+    subsCheckOnStartHint:
+      'One check twenty seconds after start — it catches whatever changed while the app was closed',
+    subsAutoUpdate: 'Update subscriptions automatically',
+    subsAutoUpdateHint: 'Servers, remaining traffic and expiry are fetched again on a schedule',
+    subsInterval: 'Update interval, h',
+    subsIntervalHint: 'Between 1 and 168 hours. The refresh goes through the tunnel when it is up.',
 
     connection: 'Connection',
     socksPort: 'SOCKS port',

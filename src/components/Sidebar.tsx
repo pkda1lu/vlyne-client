@@ -1,19 +1,23 @@
-import { Globe, Power, ScrollText, Server, Settings2, Wallet } from 'lucide-react';
+import { Globe, Power, ScrollText, Settings2, Wallet } from 'lucide-react';
 
 import { useI18n } from '../hooks/useI18n';
 import { useStore } from '../lib/store';
 
-export type ViewId = 'home' | 'nodes' | 'account' | 'routing' | 'settings' | 'logs';
+export type ViewId = 'home' | 'account' | 'routing' | 'settings' | 'logs';
 
 const ITEMS: { id: ViewId; icon: typeof Power; labelKey: string }[] = [
   { id: 'home', icon: Power, labelKey: 'nav.home' },
-  { id: 'nodes', icon: Server, labelKey: 'nav.nodes' },
   { id: 'account', icon: Wallet, labelKey: 'nav.account' },
   { id: 'routing', icon: Globe, labelKey: 'nav.routing' },
   { id: 'settings', icon: Settings2, labelKey: 'nav.settings' },
   { id: 'logs', icon: ScrollText, labelKey: 'nav.logs' },
 ];
 
+/**
+ * The rail sits collapsed to its icons and widens on hover, so the servers
+ * beside it keep the width. It overlays the main column while open rather
+ * than pushing it, which would reflow the whole view on a stray pointer.
+ */
 export function Sidebar({
   view,
   onNavigate,
@@ -22,7 +26,6 @@ export function Sidebar({
   onNavigate: (view: ViewId) => void;
 }) {
   const { t } = useI18n();
-  const nodeCount = useStore((s) => s.data?.nodes.length ?? 0);
   const appVersion = useStore((s) => s.appVersion);
   const coreVersion = useStore((s) => s.coreVersion);
 
@@ -34,13 +37,11 @@ export function Sidebar({
           className={`nav-item${view === id ? ' nav-item--active' : ''}`}
           onClick={() => onNavigate(id)}
           aria-current={view === id ? 'page' : undefined}
+          /* Collapsed, the icon is all there is to go on. */
+          title={t(labelKey)}
         >
-          <Icon size={17} />
-          <span>{t(labelKey)}</span>
-          {/* Only the server count is worth surfacing at a glance. */}
-          {id === 'nodes' && nodeCount > 0 && (
-            <span className="nav-item__badge">{nodeCount}</span>
-          )}
+          <Icon size={17} className="nav-item__icon" />
+          <span className="nav-item__label">{t(labelKey)}</span>
         </button>
       ))}
 
