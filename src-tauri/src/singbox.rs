@@ -169,7 +169,7 @@ fn tls_object(node: &Node) -> Option<Value> {
     }
 
     // REALITY mandates uTLS, so force a fingerprint when the node omits one.
-    if node.tls.is_reality() {
+    if node.tls.is_reality() && !node.protocol.uses_quic() {
         let mut reality = Map::new();
         reality.insert("enabled".into(), json!(true));
         reality.insert(
@@ -188,7 +188,13 @@ fn tls_object(node: &Node) -> Option<Value> {
                 "fingerprint": node.tls.fingerprint.as_deref().unwrap_or("chrome"),
             }),
         );
-    } else if let Some(fp) = node.tls.fingerprint.as_deref().filter(|f| !f.is_empty()) {
+    } else if let Some(fp) = node
+        .tls
+        .fingerprint
+        .as_deref()
+        .filter(|f| !f.is_empty())
+        .filter(|_| !node.protocol.uses_quic())
+    {
         tls.insert("utls".into(), json!({ "enabled": true, "fingerprint": fp }));
     }
 
@@ -978,6 +984,29 @@ mod tests {
         assert!(out.get("flow").is_none());
     }
 
+    /// Subscription links routinely carry `fp=chrome` on every node, QUIC ones
+    /// included. Emitting it there makes the core fail every connection with
+    /// "unsupported usage for uTLS" — the tunnel comes up and then answers
+    /// nothing. `sing-box check` accepts such a config, so only this assertion
+    /// stands between the field and a dead tunnel.
+    #[test]
+    fn quic_outbounds_never_carry_utls() {
+        for link in [
+            "hy2://pass@a.com:443?sni=a.com&fp=chrome#HY",
+            "tuic://uuid:pass@a.com:443?sni=a.com&fp=chrome#TUIC",
+            // A QUIC node tagged as REALITY is nonsense the same way: the
+            // forced fingerprint would break it just as thoroughly.
+            "hy2://pass@a.com:443?security=reality&pbk=KEY&sid=ab&sni=a.com#HYR",
+        ] {
+            let node = parse_link(link).unwrap();
+            let out = build_outbound(&node, &Settings::default(), "n").unwrap();
+
+            assert_eq!(out["tls"]["enabled"], json!(true), "{link}");
+            assert!(out["tls"].get("utls").is_none(), "{link}");
+            assert!(out["tls"].get("reality").is_none(), "{link}");
+        }
+    }
+
     #[test]
     fn xhttp_outbound_carries_path_host_and_mode() {
         let node = parse_link(
@@ -1584,8 +1613,8 @@ mod tests {
             "vmess://eyJ2IjoiMiIsInBzIjoiVk0iLCJhZGQiOiJjLmNvbSIsInBvcnQiOiI0NDMiLCJpZCI6InV1aWQiLCJhaWQiOiIwIiwibmV0IjoiZ3JwYyIsInBhdGgiOiIvZyIsInRscyI6InRscyJ9",
             "trojan://pass@d.com:443?sni=d.com#TR",
             "ss://YWVzLTI1Ni1nY206cGFzcw@e.com:8388#SS",
-            "hy2://pass@f.com:443?sni=f.com&obfs-password=x#HY",
-            "tuic://3f9a1c22-7b4e-4d18-9a56-0e1f2b3c4d5e:pass@g.com:443?sni=g.com#TUIC",
+            "hy2://pass@f.com:443?sni=f.com&fp=chrome&obfs-password=x#HY",
+            "tuic://3f9a1c22-7b4e-4d18-9a56-0e1f2b3c4d5e:pass@g.com:443?sni=g.com&fp=chrome#TUIC",
             "anytls://pass@h.com:443?sni=h.com#ANY",
             // XHTTP is the one transport the core only has because it is the
             // `lx` fork. Upstream rejects the whole configuration over it, so

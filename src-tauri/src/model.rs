@@ -271,6 +271,16 @@ impl Protocol {
                 | Protocol::Shadowsocks { .. }
         )
     }
+
+    /// Whether the outbound carries its TLS inside QUIC.
+    ///
+    /// uTLS shapes a TLS ClientHello over TCP and has no QUIC equivalent, so
+    /// the core answers `unsupported usage for uTLS` on every connection an
+    /// outbound like this opens. The config still passes `check`: it only
+    /// fails when something actually dials.
+    pub fn uses_quic(&self) -> bool {
+        matches!(self, Protocol::Hysteria2 { .. } | Protocol::Tuic { .. })
+    }
 }
 
 // ---------------------------------------------------------------------------
